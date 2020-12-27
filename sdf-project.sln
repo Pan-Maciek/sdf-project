@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30711.63
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdf-renderer", "sdf-renderer\sdf-renderer.vcxproj", "{CB7E9BF3-1C42-411E-B711-F89FD3D2F0C5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9} = {8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdf-lib", "sdf-lib\sdf-lib.vcxproj", "{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdf-cli", "sdf-cli\sdf-cli.vcxproj", "{CAD29526-7B1E-4EE5-8DFD-5591142CFA55}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9} = {8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CB7E9BF3-1C42-411E-B711-F89FD3D2F0C5}.Debug|x64.ActiveCfg = Debug|x64
+		{CB7E9BF3-1C42-411E-B711-F89FD3D2F0C5}.Debug|x64.Build.0 = Debug|x64
+		{CB7E9BF3-1C42-411E-B711-F89FD3D2F0C5}.Debug|x86.ActiveCfg = Debug|Win32
+		{CB7E9BF3-1C42-411E-B711-F89FD3D2F0C5}.Debug|x86.Build.0 = Debug|Win32
+		{CB7E9BF3-1C42-411E-B711-F89FD3D2F0C5}.Release|x64.ActiveCfg = Release|x64
+		{CB7E9BF3-1C42-411E-B711-F89FD3D2F0C5}.Release|x64.Build.0 = Release|x64
+		{CB7E9BF3-1C42-411E-B711-F89FD3D2F0C5}.Release|x86.ActiveCfg = Release|Win32
+		{CB7E9BF3-1C42-411E-B711-F89FD3D2F0C5}.Release|x86.Build.0 = Release|Win32
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}.Debug|x64.ActiveCfg = Debug|x64
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}.Debug|x64.Build.0 = Debug|x64
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}.Debug|x86.ActiveCfg = Debug|Win32
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}.Debug|x86.Build.0 = Debug|Win32
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}.Release|x64.ActiveCfg = Release|x64
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}.Release|x64.Build.0 = Release|x64
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}.Release|x86.ActiveCfg = Release|Win32
+		{8B465221-2FAC-4FA5-9D5E-FDF57EB376F9}.Release|x86.Build.0 = Release|Win32
+		{CAD29526-7B1E-4EE5-8DFD-5591142CFA55}.Debug|x64.ActiveCfg = Debug|x64
+		{CAD29526-7B1E-4EE5-8DFD-5591142CFA55}.Debug|x64.Build.0 = Debug|x64
+		{CAD29526-7B1E-4EE5-8DFD-5591142CFA55}.Debug|x86.ActiveCfg = Debug|Win32
+		{CAD29526-7B1E-4EE5-8DFD-5591142CFA55}.Debug|x86.Build.0 = Debug|Win32
+		{CAD29526-7B1E-4EE5-8DFD-5591142CFA55}.Release|x64.ActiveCfg = Release|x64
+		{CAD29526-7B1E-4EE5-8DFD-5591142CFA55}.Release|x64.Build.0 = Release|x64
+		{CAD29526-7B1E-4EE5-8DFD-5591142CFA55}.Release|x86.ActiveCfg = Release|Win32
+		{CAD29526-7B1E-4EE5-8DFD-5591142CFA55}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {26C941E0-C8D4-4B86-BD4A-84B137311DD0}
+	EndGlobalSection
+EndGlobal
