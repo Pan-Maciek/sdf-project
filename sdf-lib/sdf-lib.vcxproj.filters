@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h">
+    <ClInclude Include="sdf\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sdf\kdtree.h">

@@ -163,7 +163,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h" />
+    <ClInclude Include="sdf\pch.h" />
     <ClInclude Include="sdf\bvh.h" />
     <ClInclude Include="sdf\kdtree.h" />
   </ItemGroup>
