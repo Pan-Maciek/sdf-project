@@ -1,8 +1,10 @@
 #version 450 core
+uniform sampler2D tex;
 layout(location=0) uniform vec2 iResolution;
 layout(location=1) uniform float iTime;
 layout(location=2) uniform int iFrame;
 out vec4 color;
+
 
 float hash(float seed)
 {
@@ -137,8 +139,8 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
       		fade*=mat.xyz;
         
             //if monte carlo
-            //vec3 skyPoint = cosineDirection( off1 + 7.1*float(iFrame) + 581.123 + float(i)*92.13, nor);
-        	float skySha = castShadows( pos + nor*0.01, vec3(0.,1.,0.));//skyPoint
+            vec3 skyPoint = cosineDirection( off1 + 7.1*float(iFrame) + 581.123 + float(i)*92.13, nor);
+        	float skySha = castShadows( pos + nor*0.01, skyPoint);//skyPoint
         	diffuse += vec3(0.2,0.4,0.7) * skySha;
             ro=pos+nor*0.001;
 
@@ -172,9 +174,9 @@ void main()
    	float off1=hash(dot( gl_FragCoord.xy, vec2(12.9898, 78.233))+iTime*354.+float(i)*1111.45);
     vec2 off2=vec2(hash(off1+11.54),hash(off1+56.97));
     
-	vec2 q = (2.*(gl_FragCoord.xy/*if monte carlo+off2*/)-iResolution.xy )/iResolution.y;
+	vec2 q = (2.*(gl_FragCoord.xy+off2)-iResolution.xy )/iResolution.y;
 	vec3 ro=vec3(0.,0.,2.);
-    ro+=vec3(0.,0.,-iTime);
+    //ro+=vec3(0.,0.,-iTime);
     vec3 rd=normalize(vec3(q.x,q.y,-1.));
     
     vec3 col =vec3(0.02,0.04,0.07)*0.6*rd.y;
@@ -189,9 +191,11 @@ void main()
     //fragColor = vec4(col,1.0);
 }
  //tot/=2.;
-   //tot += texture( iChannel0, gl_FragCoord.xy/iResolution.xy ).xyz;
-   tot=pow(tot,vec3(0.4545));
+   tot += texture( tex, gl_FragCoord.xy/iResolution.xy ).xyz;
+   //tot=mix(texture( tex, gl_FragCoord.xy/iResolution.xy ).xyz,tot,iFrame/10000.);
+   //tot=pow(tot,vec3(0.4545));
    color = vec4(tot,1.0);
-   //color =mix(tot.xyzz, texture(iChannel0, gl_FragCoord.xy/iResolution.xy), pow(.0001, iTimeDelta));
+   //color =mix(tot.xyzz, texture(tex, gl_FragCoord.xy/iResolution.xy), pow(.0001, iTimeDelta));
 
 }
+
