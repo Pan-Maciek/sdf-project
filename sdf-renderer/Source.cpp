@@ -1,8 +1,4 @@
-#include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
-#include "glm.hpp"
-#include <stdio.h>
-#include <iostream>
+#include "pch.h"
 #define WIDTH 1280
 #define HEIGHT 720
 
