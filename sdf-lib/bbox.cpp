@@ -17,7 +17,25 @@ bbox::bbox(const vector<vec3> &verticies) {
 	}
 }
 
+bbox::bbox(vec3 *begin, vec3 *end) {
+	min = max = *begin;
+	for (vec3* it = begin + 1; it != end; ++it) {
+		minmax_update(min.x, max.x, it->x);
+		minmax_update(min.y, max.y, it->y);
+		minmax_update(min.z, max.z, it->z);
+	}
+}
+
 bbox::bbox(const std::vector<glm::vec3> &verticies, const glm::uvec3 &primitive) {
+	min = max = verticies[primitive[0]];
+	for (int i = 1; i < 3; ++i) {
+		minmax_update(min.x, max.x, verticies[primitive[i]].x);
+		minmax_update(min.y, max.y, verticies[primitive[i]].y);
+		minmax_update(min.z, max.z, verticies[primitive[i]].z);
+	}
+}
+
+bbox::bbox(const glm::vec3 *verticies, const glm::uvec3 &primitive) {
 	min = max = verticies[primitive[0]];
 	for (int i = 1; i < 3; ++i) {
 		minmax_update(min.x, max.x, verticies[primitive[i]].x);
