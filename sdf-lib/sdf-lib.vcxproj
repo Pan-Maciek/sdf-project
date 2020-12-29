@@ -96,6 +96,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>sdf;$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>26451</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -134,6 +135,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>sdf;$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>26451</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -163,13 +165,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="sdf\bbox.h" />
+    <ClInclude Include="sdf\mesh.h" />
     <ClInclude Include="sdf\pch.h" />
     <ClInclude Include="sdf\bvh.h" />
     <ClInclude Include="sdf\kdtree.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="bbox.cpp" />
     <ClCompile Include="bvh.cpp" />
     <ClCompile Include="kdtree.cpp" />
+    <ClCompile Include="mesh.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -24,6 +24,12 @@
     <ClInclude Include="sdf\bvh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sdf\bbox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sdf\mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -34,6 +40,12 @@
     </ClCompile>
     <ClCompile Include="bvh.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bbox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mesh.cpp">
+      <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
