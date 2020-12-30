@@ -34,14 +34,14 @@ void io::read(const string &path, mesh &out, ply_format _) {
 
 	int vbytes = vcount * sizeof(vec3);
 	vec3 *vertices = (vec3*) malloc(vbytes);
-	file.read_nbytes(vertices, vbytes);
+	file.read_nbytes(vertices, vcount);
 
 	int pbytes = pcount * sizeof(uvec3);
 	uvec3 *primitives = (uvec3*) malloc(pbytes);
 	for (int i = 0; i < pcount; ++i) {
 		int n = file.get();
 		assert(n == 3);
-		file.read_nbytes((primitives + i), sizeof *primitives);
+		file.read_bytes(primitives[i]);
 	}
 
 	out = {vertices, primitives, vcount, pcount};

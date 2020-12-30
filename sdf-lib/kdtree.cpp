@@ -75,7 +75,10 @@ kd_acc kd_builder::build(sdf::mesh mesh) {
 	for (int i = 0; i < 3; ++i)
 		free(edges[i]);
 
-	return {next_free_node, (int) pind.size(), nodes, pind.data()};
+	int *indices = new int[pind.size()];
+	memcpy(indices, pind.data(), pind.size() * sizeof(int));
+
+	return {next_free_node, (int) pind.size(), nodes, indices};
 }
 
 void kd_builder::build(
@@ -188,19 +191,53 @@ retry_split:
 	build(above_child, bounds1, pbounds, prims1, n1, depth - 1, edges, prims0, prims1 + pcount, pind, bad_refines);
 }
 
-void io::write(const string &path, const kd_acc &in) {
-
-}
-
-void io::read(const string &path, kd_acc &out) {
+void io::write(const string &path, const kd_acc &acc) {
 	ofstream file(path, ios::binary);
 
 	file << "kd";
-	file.write_bytes(out.nodes_size);
-	file.write_bytes(out.indices_size);
+	file.write_bytes(acc.nodes_size);
+	file.write_bytes(acc.indices_size);
 
-	file.write_nbytes(out.nodes, out.nodes_size);
-	file.write_nbytes(out.indices, out.indices_size);
+	assert(acc.nodes != nullptr);
+	file.write_nbytes(acc.nodes, acc.nodes_size);
+
+	assert(acc.indices != nullptr);
+	file.write_nbytes(acc.indices, acc.indices_size);
+
+	file.close();
+}
+
+void io::read(const string &path, kd_acc &out) {
+	ifstream file(path, ios::binary);
+
+	if (out.nodes) {
+		free(out.nodes);
+		out.nodes = nullptr;
+	}
+	if (out.indices) {
+		free(out.indices);
+		out.indices = nullptr;
+	}
+
+	char magic_bytes[2];
+	file.read_nbytes(magic_bytes, 2);
+	assert(strncmp("kd", magic_bytes, 2) == 0);
+
+	int nodes, indices;
+	file.read_bytes(nodes);
+	assert(nodes > 0);
+
+	file.read_bytes(indices);
+	assert(indices > 0);
+
+	out.nodes_size = nodes;
+	out.indices_size = indices;
+
+	out.nodes = (kd_node*) malloc(nodes * sizeof(kd_node));
+	out.indices = (int*) malloc(indices * sizeof(int));
+	
+	file.read_nbytes(out.nodes, nodes);
+	file.read_nbytes(out.indices, indices);
 
 	file.close();
 }

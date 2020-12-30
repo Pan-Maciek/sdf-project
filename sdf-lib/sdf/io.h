@@ -10,7 +10,8 @@ namespace io {
 #define write_bytes(x) write((char*) &x, sizeof x)
 #define write_nbytes(x,n) write((char*) x, sizeof *x *n)
 
-#define read_nbytes(x, bytes) read((char*) x, bytes)
+#define read_bytes(x) read((char*) &x, sizeof x)
+#define read_nbytes(x, n) read((char*) x, sizeof *x *n)
 
 struct ply_format { };
 const ply_format ply;
