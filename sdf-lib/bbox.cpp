@@ -44,6 +44,14 @@ bbox::bbox(const glm::vec3 *verticies, const glm::uvec3 &primitive) {
 	}
 }
 
+bbox::bbox(const glm::vec3 v1, const glm::vec3 v2, const glm::vec3 v3) {
+	min = max = v1;
+	min = glm::min(min, v2);
+	min = glm::min(min, v3);
+	max = glm::max(max, v2);
+	max = glm::max(max, v3);
+}
+
 float bbox::area() const {
 	vec3 dt = max - min;
 	return 2 * (dt.x * dt.y + dt.x * dt.z + dt.y * dt.z);
@@ -56,4 +64,20 @@ int bbox::max_extent() const {
 	else return 2;
 }
 
+bbox bbox::opU(bbox b2) const {
+	bbox b3;
+	b3.min = glm::min(min, b2.min);
+	b3.max = glm::max(max, b2.max);
+	return b3;
 }
+
+bbox bbox::opU(vec3 p2) const {
+	bbox b2;
+	b2.min = glm::min(min, p2);
+	b2.max = glm::max(max, p2);
+	return b2;
+}
+
+}
+
+
