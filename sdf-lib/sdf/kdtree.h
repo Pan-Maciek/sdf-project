@@ -22,11 +22,14 @@ struct kd_node {
 #define kd_pcount(node) (node.flags >> 2)
 #define kd_poffset(node) glm::floatBitsToInt(node.split)
 
-struct bound_edge;
+struct kd_acc {
+	int nodes_size, indices_size;
+	kd_node *nodes;
+	int *indices;
+};
 
 struct kd_builder {
 	kd_builder(
-		sdf::mesh mesh,
 		int isect_cost,
 		int traversal_cost,
 		float empty_bonus,
@@ -37,25 +40,20 @@ struct kd_builder {
 	const int isect_cost, traversal_cost, max_primitives, max_depth;
 	const float empty_bonus;
 	
-	const bbox bounds;
-
-	kd_node* nodes;
-	std::vector<int> pind;
-
+	kd_acc build(sdf::mesh);
+private:
 	void build(
-		int node_num,
-		const bbox &bounds,
-		bbox *pbounds,
-		int *pnums,
-		int pcount,
-		int depth,
-		bound_edge* edges[3], 
-		int *prims0,
-		int *prims1,
+		int node_num, const bbox &bounds,
+		bbox *pbounds, int *pnums,
+		int pcount, int depth,
+		struct bound_edge* edges[3], 
+		int *prims0, int *prims1,
+		std::vector<int>& pind,
 		int bad_refines
 	);
-	
+
 	int next_free_node, allocated_nodes;
+	kd_node* nodes;
 };
 
 }

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "kdtree.h"
+#include "io.h"
 
 using namespace std;
 using namespace glm;
@@ -35,7 +36,6 @@ void kd_node::init_interior(int axis, int above_child, float split_value) {
 }
 
 kd_builder::kd_builder(
-	mesh mesh,
 	int isect_cost,
 	int traversal_cost,
 	float empty_bonus,
@@ -43,16 +43,20 @@ kd_builder::kd_builder(
 	int max_depth
 ) : isect_cost(isect_cost), traversal_cost(traversal_cost),
 	empty_bonus(empty_bonus), max_primitives(max_prims),
-	max_depth(max_depth <= 0 ? std::round(8 + 1.3 * std::log2l(mesh.primitive_count)) : max_depth),
-	bounds(mesh.vertices, mesh.vertices + mesh.vertex_count),
-	next_free_node(0), allocated_nodes(0)
-{
+	max_depth(max_depth), allocated_nodes(0), next_free_node(0),
+	nodes(nullptr)
+{ }
+
+kd_acc kd_builder::build(sdf::mesh mesh) {
+	bbox bounds(mesh.vertices, mesh.vertices + mesh.vertex_count);
+	int depth = max_depth <= 0 ? std::round(8 + 1.3 * std::log2l(mesh.primitive_count)) : max_depth;
+	next_free_node = allocated_nodes = 0;
+
 	int pcount = mesh.primitive_count;
 	// pre-compute bounds per primitive
 	auto pbounds = make_unique<bbox[]>(pcount);
 	for (int i = 0; i < pcount; ++i)
 		pbounds[i] = bbox(mesh.vertices, mesh.primitives[i]);
-
 
 	bound_edge* edges[3];
 	for (int i = 0; i < 3; ++i)
@@ -65,12 +69,28 @@ kd_builder::kd_builder(
 	for (int i = 0; i < pcount; ++i)
 		pnums[i] = i;
 
-	build(0, bounds, pbounds.get(), pnums.get(), pcount, this->max_depth, edges, prims0.get(), prims1.get(), 0);
+	vector<int> pind;
+
+	build(0, bounds, pbounds.get(), pnums.get(), pcount, this->max_depth, edges, prims0.get(), prims1.get(), pind, 0);
 	for (int i = 0; i < 3; ++i)
 		free(edges[i]);
+
+	return {next_free_node, (int) pind.size(), nodes, pind.data()};
 }
 
-void kd_builder::build(int node_num, const bbox &bounds, bbox *pbounds, int *pnums, int pcount, int depth, bound_edge* edges[3], int *prims0, int *prims1, int bad_refines) {
+void kd_builder::build(
+	int node_num, 
+	const bbox &bounds, 
+	bbox *pbounds, 
+	int *pnums, 
+	int pcount, 
+	int depth, 
+	bound_edge* edges[3], 
+	int *prims0, 
+	int *prims1, 
+	vector<int>& pind, 
+	int bad_refines
+) {
 	assert(node_num == next_free_node);
 	if (next_free_node == allocated_nodes) {
 		int new_allocated_nodes = std::max(2 * allocated_nodes, 512);
@@ -162,11 +182,29 @@ retry_split:
 	bbox bounds0 = bounds, bounds1 = bounds;
 	bounds0.max[best_axis] = bounds1.min[best_axis] = tsplit;
 
-	build(node_num + 1, bounds0, pbounds, prims0, n0, depth - 1, edges, prims0, prims1 + pcount, bad_refines);
+	build(node_num + 1, bounds0, pbounds, prims0, n0, depth - 1, edges, prims0, prims1 + pcount, pind, bad_refines);
 	int above_child = next_free_node;
 	nodes[node_num].init_interior(best_axis, above_child, tsplit);
-	build(above_child, bounds1, pbounds, prims1, n1, depth - 1, edges, prims0, prims1 + pcount, bad_refines);
+	build(above_child, bounds1, pbounds, prims1, n1, depth - 1, edges, prims0, prims1 + pcount, pind, bad_refines);
 }
+
+void io::write(const string &path, const kd_acc &in) {
+
+}
+
+void io::read(const string &path, kd_acc &out) {
+	ofstream file(path, ios::binary);
+
+	file << "kd";
+	file.write_bytes(out.nodes_size);
+	file.write_bytes(out.indices_size);
+
+	file.write_nbytes(out.nodes, out.nodes_size);
+	file.write_nbytes(out.indices, out.indices_size);
+
+	file.close();
+}
+
 
 }
 

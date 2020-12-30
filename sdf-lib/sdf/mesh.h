@@ -10,6 +10,4 @@ struct mesh {
 	int vertex_count, primitive_count;
 };
 
-mesh load_ply(const std::string path);
-
 }

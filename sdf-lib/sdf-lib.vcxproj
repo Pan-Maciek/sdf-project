@@ -166,6 +166,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="sdf\bbox.h" />
+    <ClInclude Include="sdf\io.h" />
     <ClInclude Include="sdf\mesh.h" />
     <ClInclude Include="sdf\pch.h" />
     <ClInclude Include="sdf\bvh.h" />

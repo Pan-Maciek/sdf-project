@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "bvh.h"
+#include "io.h"
+
 using namespace sdf;
 
 void bvh::load(std::string filename) {
-	data = load_ply(filename);
+	io::read(filename, data, io::ply);
 	
 	int i = 0;
 	for (int y = 0; y < data.primitive_count;y++) {
@@ -119,15 +121,22 @@ void bvh::write(std::string filename) {
 	recursiveFlatten(root, &offset);
 
 	auto file = std::fstream(filename, std::ios::out | std::ios::binary);
-	file.write((char*)&totalNodes, 4);
-	file.write((char*)&data.vertex_count, 4);
-	file.write((char*)&data.primitive_count, 4);
+	file.write_bytes(totalNodes);
+	file.write_bytes(data.vertex_count);
+	file.write_bytes(data.primitive_count);
 
-	file.write((char*)&wnodes[0], 32 * totalNodes);
-	file.write((char*)&data.vertices[0], 12*data.vertex_count);
-	file.write((char*)&orderedPrimitives[0], 12*data.primitive_count);
+	file.write_nbytes(&wnodes[0], totalNodes);
+	file.write_nbytes(&data.vertices[0], data.vertex_count);
+	file.write_nbytes(&orderedPrimitives[0], data.primitive_count);
 
 	file.close();
-	
+}
+
+
+void io::write(const std::string &path, bvh &acc) {
+	acc.write(path);
+}
+
+void io::read(const std::string &path, bvh &out) {
 }
 
