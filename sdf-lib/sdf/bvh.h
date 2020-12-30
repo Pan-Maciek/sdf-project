@@ -2,6 +2,8 @@
 #include "pch.h"
 #include "mesh.h"
 #include <fstream>
+#include <vector>
+#include <algorithm>
 using namespace glm;
 namespace sdf {
 
@@ -50,7 +52,8 @@ namespace sdf {
 		int totalNodes = 0;
 		bvhNode* root;
 		bvhNodeWrite* wnodes;
-		std::vector<vec3> primitives;
+		mesh data;
+		//std::vector<vec3> primitives;
 		std::vector<vec3> orderedPrimitives;
 		std::vector<primitiveInfo> primitivesInfo;
 		int recursiveFlatten(bvhNode* node, int* offset);

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "bvh.h"
 using namespace sdf;
 
@@ -37,17 +38,17 @@ bounds3 calcBounds(vec3 p1, vec3 p2, vec3 p3) {
 }
 
 void bvh::load(std::string filename) {
-	mesh msh = load_ply(filename);
+	data = load_ply(filename);
 	
 	int i = 0;
-	for (int y = 0; y < msh.primitive_count;y++) {
-		uvec3 f = msh.primitives[y];
-		vec3 p1 = msh.vertices[f.x];
-		primitives.push_back(p1);
-		vec3 p2 = msh.vertices[f.y];
-		primitives.push_back(p2);
-		vec3 p3 = msh.vertices[f.z];
-		primitives.push_back(p3);
+	for (int y = 0; y < data.primitive_count;y++) {
+		uvec3 f = data.primitives[y];
+		vec3 p1 = data.vertices[f.x];
+		//primitives.push_back(p1);
+		vec3 p2 = data.vertices[f.y];
+		//primitives.push_back(p2);
+		vec3 p3 = data.vertices[f.z];
+		//primitives.push_back(p3);
 		primitivesInfo.push_back(primitiveInfo(i, calcBounds(p1, p2, p3)));
 		i++;
 	}
@@ -81,10 +82,8 @@ bvhNode* bvh::recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int sta
 	if (nPrimitives == 1) {
 			int firstPrimOffset = orderedPrimitives.size();
 		for (int i = start; i < end; ++i) {
-			int primNum = primitivesInfo[i].primitiveNumber*3;
-			orderedPrimitives.push_back(primitives[primNum]);
-			orderedPrimitives.push_back(primitives[primNum+1]);
-			orderedPrimitives.push_back(primitives[primNum+2]);
+			int primNum = primitivesInfo[i].primitiveNumber;
+			orderedPrimitives.push_back(data.primitives[primNum]);
 
 		}
 		node->initLeaf(firstPrimOffset, nPrimitives, bounds);
@@ -103,10 +102,9 @@ bvhNode* bvh::recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int sta
 		if (centroidBounds.max[dim] == centroidBounds.min[dim]) {
 			int firstPrimOffset = orderedPrimitives.size();
 			for (int i = start; i < end; ++i) {
-				int primNum = primitivesInfo[i].primitiveNumber*3;
-				orderedPrimitives.push_back(primitives[primNum]);
-				orderedPrimitives.push_back(primitives[primNum+1]);
-				orderedPrimitives.push_back(primitives[primNum+2]);
+				int primNum = primitivesInfo[i].primitiveNumber;
+				orderedPrimitives.push_back(data.primitives[primNum]);
+
 			}
 			node->initLeaf(firstPrimOffset, nPrimitives, bounds);
 			return node;
@@ -132,8 +130,8 @@ bvhNode* bvh::recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int sta
 }
 
 void bvh::buildBvh() {
-	root = recursiveBuild(primitivesInfo, 0, primitives.size()/3,&totalNodes, orderedPrimitives);
-	primitives.swap(orderedPrimitives);
+	root = recursiveBuild(primitivesInfo, 0, data.primitive_count,&totalNodes, orderedPrimitives);
+	//primitives.swap(orderedPrimitives);
 }
 
 int bvh::recursiveFlatten(bvhNode* node, int* offset) {
@@ -159,8 +157,15 @@ void bvh::write(std::string filename) {
 	recursiveFlatten(root, &offset);
 
 	auto file = std::fstream(filename, std::ios::out | std::ios::binary);
-	file.write((char*)&wnodes[0], 32 * totalNodes);
-	file.close();
+	file.write((char*)&totalNodes, 4);
+	file.write((char*)&data.vertex_count, 4);
+	file.write((char*)&data.primitive_count, 4);
 
+	file.write((char*)&data.vertices[0], 12*data.vertex_count);
+	file.write((char*)&data.primitives[0], 12*data.primitive_count);
+	file.write((char*)&wnodes[0], 32 * totalNodes);
+
+	file.close();
+	
 }
 
