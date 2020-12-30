@@ -16,7 +16,7 @@ struct bbox {
 	float area() const;
 	int max_extent() const;
 	bbox opU(bbox b2) const;
-	bbox opU(vec3 p2) const;
+	bbox opU(glm::vec3 p2) const;
 };
 
 }
