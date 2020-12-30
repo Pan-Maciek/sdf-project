@@ -47,7 +47,7 @@
     <ClCompile Include="bbox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mesh.cpp">
+    <ClCompile Include="io.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

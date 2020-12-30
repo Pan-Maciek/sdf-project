@@ -115,28 +115,3 @@ int bvh::recursiveFlatten(bvhNode* node, int* offset) {
 	return myOffset;
 }
 
-void bvh::write(std::string filename) {
-	wnodes = new bvhNodeWrite[totalNodes];
-	int offset = 0;
-	recursiveFlatten(root, &offset);
-
-	auto file = std::fstream(filename, std::ios::out | std::ios::binary);
-	file.write_bytes(totalNodes);
-	file.write_bytes(data.vertex_count);
-	file.write_bytes(data.primitive_count);
-
-	file.write_nbytes(&wnodes[0], totalNodes);
-	file.write_nbytes(&data.vertices[0], data.vertex_count);
-	file.write_nbytes(&orderedPrimitives[0], data.primitive_count);
-
-	file.close();
-}
-
-
-void io::write(const std::string &path, bvh &acc) {
-	acc.write(path);
-}
-
-void io::read(const std::string &path, bvh &out) {
-}
-

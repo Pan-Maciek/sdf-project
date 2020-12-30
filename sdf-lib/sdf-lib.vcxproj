@@ -175,8 +175,8 @@
   <ItemGroup>
     <ClCompile Include="bbox.cpp" />
     <ClCompile Include="bvh.cpp" />
+    <ClCompile Include="io.cpp" />
     <ClCompile Include="kdtree.cpp" />
-    <ClCompile Include="mesh.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

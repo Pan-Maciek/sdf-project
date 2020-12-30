@@ -2,10 +2,9 @@
 #include "pch.h"
 #include "mesh.h"
 #include "bbox.h"
-#include <fstream>
-#include <vector>
-#include <algorithm>
+
 using namespace glm;
+
 namespace sdf {
 
 	class bvhNode {
@@ -49,7 +48,6 @@ namespace sdf {
 		};
 		void load(std::string filename);
 		void buildBvh();
-		void write(std::string filename);
 	private:
 		int totalNodes = 0;
 		bvhNode* root;
@@ -59,5 +57,6 @@ namespace sdf {
 		std::vector<primitiveInfo> primitivesInfo;
 		int recursiveFlatten(bvhNode* node, int* offset);
 		bvhNode* recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<vec3>& orderedPrimitives);
+		friend struct io;
 	};
 }

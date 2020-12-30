@@ -191,57 +191,5 @@ retry_split:
 	build(above_child, bounds1, pbounds, prims1, n1, depth - 1, edges, prims0, prims1 + pcount, pind, bad_refines);
 }
 
-void io::write(const string &path, const kd_acc &acc) {
-	ofstream file(path, ios::binary);
-
-	file << "kd";
-	file.write_bytes(acc.nodes_size);
-	file.write_bytes(acc.indices_size);
-
-	assert(acc.nodes != nullptr);
-	file.write_nbytes(acc.nodes, acc.nodes_size);
-
-	assert(acc.indices != nullptr);
-	file.write_nbytes(acc.indices, acc.indices_size);
-
-	file.close();
-}
-
-void io::read(const string &path, kd_acc &out) {
-	ifstream file(path, ios::binary);
-
-	if (out.nodes) {
-		free(out.nodes);
-		out.nodes = nullptr;
-	}
-	if (out.indices) {
-		free(out.indices);
-		out.indices = nullptr;
-	}
-
-	char magic_bytes[2];
-	file.read_nbytes(magic_bytes, 2);
-	assert(strncmp("kd", magic_bytes, 2) == 0);
-
-	int nodes, indices;
-	file.read_bytes(nodes);
-	assert(nodes > 0);
-
-	file.read_bytes(indices);
-	assert(indices > 0);
-
-	out.nodes_size = nodes;
-	out.indices_size = indices;
-
-	out.nodes = (kd_node*) malloc(nodes * sizeof(kd_node));
-	out.indices = (int*) malloc(indices * sizeof(int));
-	
-	file.read_nbytes(out.nodes, nodes);
-	file.read_nbytes(out.indices, indices);
-
-	file.close();
-}
-
-
 }
 
