@@ -36,8 +36,8 @@ int main(int argc, char** argv) {
 		cmdl({"-ic", "--isect_cost"}, 80) >> isect_cost;
 		cmdl({"-tc", "--traversal_cost"}, 1) >> traversal_cost;
 		cmdl({"-eb", "--empty_bonus"}, 0.5) >> empty_bonus;
-		cmdl({"-mp", "--max_prims", "--max_primitives"}, 0.5) >> max_primitives;
-		cmdl({"-md", "--max_depth"}, 0.5) >> max_depth;
+		cmdl({"-mp", "--max_prims", "--max_primitives"}, 1) >> max_primitives;
+		cmdl({"-md", "--max_depth"}, 0) >> max_depth;
 
 		kd_builder builder(isect_cost, traversal_cost, empty_bonus, max_primitives, max_depth);
 		kd_acc acc = builder.build(mesh);
