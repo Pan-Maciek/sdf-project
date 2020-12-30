@@ -10,6 +10,8 @@ namespace sdf {
 
 	class bvhNode {
 	public:
+		bvhNode() {};
+		~bvhNode() {delete children[0];  delete children[1];};
 		bbox bounds;
 		bvhNode* children[2];
 		int splitAxis, firstPrimitiveOffset, numPrimitives;
@@ -40,9 +42,13 @@ namespace sdf {
 
 	class bvh {
 	public:
+		bvh() {};
+		~bvh() { 
+			delete[] wnodes; 
+			delete root;
+		};
 		void load(std::string filename);
 		void buildBvh();
-		bvhNode* recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<vec3>& orderedPrimitives);
 		void write(std::string filename);
 	private:
 		int totalNodes = 0;
@@ -52,5 +58,6 @@ namespace sdf {
 		std::vector<vec3> orderedPrimitives;
 		std::vector<primitiveInfo> primitivesInfo;
 		int recursiveFlatten(bvhNode* node, int* offset);
+		bvhNode* recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<vec3>& orderedPrimitives);
 	};
 }
