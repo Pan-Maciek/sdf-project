@@ -6,3 +6,7 @@
 
 #include <iostream>
 #include <stdlib.h>
+
+#include <sdf/io.h>
+
+using namespace sdf;

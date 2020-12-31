@@ -132,6 +132,15 @@ void startup() {
     glViewport(0, 0, WIDTH, HEIGHT);
 
     fboInit();
+
+    kd_acc acc;
+    io::read("C:\\git\\sdf-project\\sdf-cli\\test", acc);
+
+    glUseProgram(program);
+    glUniform3fv(3, acc.mesh.vertex_count, (const GLfloat*) acc.mesh.vertices);
+    glUniform3uiv(4, acc.mesh.primitive_count, (const GLuint *) acc.mesh.primitives);
+    glUniform1i(5, acc.mesh.primitive_count);
+    
 }
 
 void render(double currentTime) {
@@ -174,7 +183,7 @@ void shutdown() {
 
 }
 
-int main() {
+int main(int argc, char** argv) {
 	bool running = true;
 	glfwSetErrorCallback(error_callback);
 	if (!glfwInit())

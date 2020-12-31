@@ -3,6 +3,10 @@ uniform sampler2D tex;
 layout(location=0) uniform vec2 iResolution;
 layout(location=1) uniform float iTime;
 layout(location=2) uniform int iFrame;
+
+layout(location=3) uniform vec3 verts[];
+layout(location=4) uniform uvec3 prims[];
+layout(location=5) uniform int pcount;
 out vec4 color;
 
 
@@ -25,6 +29,35 @@ float sdBox( vec3 p, vec3 b )
 {
   vec3 q = abs(p) - b;
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
+float dot2( in vec3 v ) { return dot(v,v); }
+float ndot( in vec2 a, in vec2 b ) { return a.x*b.x - a.y*b.y; }
+
+float sdTriangle( vec3 p, vec3 a, vec3 b, vec3 c ) {
+	vec3 ba = b - a; vec3 pa = p - a;
+	vec3 cb = c - b; vec3 pb = p - b;
+	vec3 ac = a - c; vec3 pc = p - c;
+	vec3 nor = cross( ba, ac );
+
+    float side = sign(dot(nor, p));
+    if (sign(dot(cross(ba,nor),pa)) + sign(dot(cross(cb,nor),pb)) + sign(dot(cross(ac,nor),pc)) < 2.0) {
+        return side * sqrt(min(min(
+            dot2(ba*clamp(dot(ba,pa)/dot2(ba),0.0,1.0)-pa), 
+            dot2(cb*clamp(dot(cb,pb)/dot2(cb),0.0,1.0)-pb)),
+            dot2(ac*clamp(dot(ac,pc)/dot2(ac),0.0,1.0)-pc))
+		);
+    } else {
+        return side * sqrt(dot(nor,pa)*dot(nor,pa)/dot2(nor));
+    }
+}
+
+float sdMesh(vec3 p) {
+    float d = sdTriangle(p, verts[prims[0].x], verts[prims[0].y], verts[prims[0].z]);
+    for (int i = 1; i < pcount; i++) {
+        d = min(d, sdTriangle(p, verts[prims[i].x], verts[prims[i].y], verts[prims[i].z]));
+    }
+    return d;
 }
 
 vec2 map(vec3 pos){
