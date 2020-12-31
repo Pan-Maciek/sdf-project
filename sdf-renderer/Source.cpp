@@ -7,8 +7,10 @@
 #define HEIGHT 720
 
 GLuint vao;
-GLuint program;
+GLuint programBvh;
+GLuint programKd;
 GLuint programQuad;
+GLuint* currentProgram;
 GLuint fbo[2];
 GLuint color_texture[2];
 GLuint verticesBuffer;
@@ -132,8 +134,9 @@ void loadKd(std::string filename) {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nodesBuffer);
 
 
-    glUseProgram(program);
+    glUseProgram(programKd);
     glUniform1i(3, acc.index_count);
+    currentProgram = &programKd;
 }
 
 void loadBvh(std::string filename) {
@@ -157,8 +160,9 @@ void loadBvh(std::string filename) {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nodesBuffer);
     
 
-    glUseProgram(program);
+    glUseProgram(programBvh);
     glUniform1i(3, acc.getPrimitiveNum());
+    currentProgram = &programBvh;
  
     //debug
   /*  void* r=glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, acc.getVertexNum() * sizeof(*acc.getVertices()), GL_MAP_READ_BIT);
@@ -175,12 +179,22 @@ void loadBvh(std::string filename) {
 
 void startup() {
 	//shaders initialization
-    program = glCreateProgram();
+    programBvh = glCreateProgram();
     GLuint vs=loadShaderFromFile("vs.vsh",GL_VERTEX_SHADER,true);
     GLuint fs = loadShaderFromFile("fs.fsh", GL_FRAGMENT_SHADER, true);
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
+    glAttachShader(programBvh, vs);
+    glAttachShader(programBvh, fs);
+    glLinkProgram(programBvh);
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+
+
+    programKd = glCreateProgram();
+    vs = loadShaderFromFile("vs.vsh", GL_VERTEX_SHADER, true);
+    fs = loadShaderFromFile("fsKd.fsh", GL_FRAGMENT_SHADER, true);
+    glAttachShader(programKd, vs);
+    glAttachShader(programKd, fs);
+    glLinkProgram(programKd);
     glDeleteShader(vs);
     glDeleteShader(fs);
 
@@ -210,7 +224,7 @@ void render(double currentTime) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo[frame%2]);
     glBindTexture(GL_TEXTURE_2D, color_texture[(frame + 1) % 2]);
-    glUseProgram(program);
+    glUseProgram(*currentProgram);
 
    // glClearBufferfv(GL_COLOR, 0, black);
 
@@ -240,7 +254,9 @@ void render(double currentTime) {
 
 void shutdown() {
     glDeleteVertexArrays(1, &vao);
-    glDeleteProgram(program);
+    glDeleteProgram(programBvh);
+    glDeleteProgram(programKd);
+    glDeleteProgram(programQuad);
 
 }
 
