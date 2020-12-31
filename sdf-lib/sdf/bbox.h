@@ -19,4 +19,10 @@ struct bbox {
 	bbox opU(glm::vec3 p2) const;
 };
 
+struct bbox4 {
+	glm::vec4 min;
+	glm::vec4 max;
+	bbox4(bbox b) { min = vec4(b.min, 0.); max = vec4(b.max, 0.); };
+};
+
 }

@@ -18,15 +18,14 @@ namespace sdf {
 		void initInterior(int axis, bvhNode* n0, bvhNode* n1);
 	};
 
-	struct bvhNodeWrite {
-		bbox bounds; //24b
+	struct bvhNodeWrite {//44b
+		bbox4 bounds; //32b
 		union {
-			int primitivesOffset;    // leaf
-			int secondChildOffset;   // interior
+			uint primitivesOffset;    // leaf
+			uint secondChildOffset;   // interior
 		};//4b
-		uint16_t numPrimitives; //2b
-		uint8_t axis;//1b
-		uint8_t pad[1];//1b
+		uint numPrimitives; //4b
+		uint axis;//4b
 	};
 
 	struct primitiveInfo {
@@ -44,19 +43,28 @@ namespace sdf {
 		bvh() {};
 		~bvh() { 
 			delete[] wnodes; 
+			delete[] vertices;
 			delete root;
 		};
 		void load(std::string filename);
 		void buildBvh();
+		uint getNodeNum() const { return totalNodes; }
+		uint getVertexNum() const { return data.vertex_count; }
+		uint getPrimitiveNum() const { return data.primitive_count; }
+		auto getVertices() const { return vertices; }
+		auto getPrimitives() const { return &orderedPrimitives[0]; }
+		auto getNodes() const { return &wnodes[0]; }
+		
 	private:
 		int totalNodes = 0;
 		bvhNode* root;
 		bvhNodeWrite* wnodes;
+		vec4* vertices;
 		mesh data;
-		std::vector<vec3> orderedPrimitives;
+		std::vector<uvec4> orderedPrimitives;
 		std::vector<primitiveInfo> primitivesInfo;
 		int recursiveFlatten(bvhNode* node, int* offset);
-		bvhNode* recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<vec3>& orderedPrimitives);
+		bvhNode* recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<uvec4>& orderedPrimitives);
 		friend struct io;
 	};
 }

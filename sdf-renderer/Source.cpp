@@ -1,4 +1,8 @@
 #include "pch.h"
+#include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
+#include <stdio.h>
+#include <iostream>
 #define WIDTH 1280
 #define HEIGHT 720
 
@@ -7,9 +11,12 @@ GLuint program;
 GLuint programQuad;
 GLuint fbo[2];
 GLuint color_texture[2];
+GLuint verticesBuffer;
+GLuint indicesBuffer;
+GLuint nodesBuffer;
+
 static const GLenum draw_buffers[] = {
-        GL_COLOR_ATTACHMENT0,
-        GL_COLOR_ATTACHMENT1
+        GL_COLOR_ATTACHMENT0
 };
 
 static void error_callback(int error, const char* description)
@@ -99,9 +106,46 @@ void fboInit() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glFramebufferTexture(GL_FRAMEBUFFER, draw_buffers[1], color_texture[1], 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, draw_buffers[0], color_texture[1], 0);
     
-    glDrawBuffers(1, &draw_buffers[1]);
+    glDrawBuffers(1, &draw_buffers[0]);
+}
+
+void loadBvh(std::string filename) {
+    bvh acc;
+    io::read(filename, acc);
+
+    glGenBuffers(1, &verticesBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.getVertexNum()*16, acc.getVertices(), GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, verticesBuffer);
+    
+    glGenBuffers(1, &indicesBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indicesBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.getPrimitiveNum() * sizeof(*acc.getPrimitives()), acc.getPrimitives(), GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indicesBuffer);
+    
+    
+    glGenBuffers(1, &nodesBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, nodesBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.getNodeNum() * sizeof(*acc.getNodes()), acc.getNodes(), GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nodesBuffer);
+    
+
+    glUseProgram(program);
+    glUniform1i(3, acc.getPrimitiveNum());
+ 
+    //debug
+  /*  void* r=glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, acc.getVertexNum() * sizeof(*acc.getVertices()), GL_MAP_READ_BIT);
+    auto rr = (vec4*)r;
+    for (int i = 0; i < 8; i++) {
+        std::cout << rr[i].x << " " << rr[i].y << " " << rr[i].z << std::endl;
+    }
+    for (int i = 0; i < acc.getVertexNum(); i++) {
+        std::cout << acc.getVertices()[i].x<<" "<< acc.getVertices()[i].y<<" "<< acc.getVertices()[i].z << std::endl;
+
+    }*/
+   
 }
 
 void startup() {
@@ -132,15 +176,7 @@ void startup() {
     glViewport(0, 0, WIDTH, HEIGHT);
 
     fboInit();
-
-    kd_acc acc;
-    io::read("C:\\git\\sdf-project\\sdf-cli\\test", acc);
-
-    glUseProgram(program);
-    glUniform3fv(3, acc.mesh.vertex_count, (const GLfloat*) acc.mesh.vertices);
-    glUniform3uiv(4, acc.mesh.primitive_count, (const GLuint *) acc.mesh.primitives);
-    glUniform1i(5, acc.mesh.primitive_count);
-    
+    loadBvh("out.binary");
 }
 
 void render(double currentTime) {
@@ -183,7 +219,7 @@ void shutdown() {
 
 }
 
-int main(int argc, char** argv) {
+int main() {
 	bool running = true;
 	glfwSetErrorCallback(error_callback);
 	if (!glfwInit())

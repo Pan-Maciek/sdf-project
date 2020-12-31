@@ -75,7 +75,7 @@ void io::write(const string &path, bvh &acc) {
 	file.write_bytes(acc.data.primitive_count);
 
 	file.write_nbytes(acc.wnodes, acc.totalNodes);
-	file.write_nbytes(acc.data.vertices, acc.data.vertex_count);
+	file.write_nbytes(acc.vertices, acc.data.vertex_count);
 	file.write_nbytes(&acc.orderedPrimitives[0], acc.data.primitive_count);
 
 	file.close();
@@ -98,11 +98,15 @@ void io::read(const std::string &path, bvh &out) {
 	file.read_bytes(primitive_count);
 	assert(primitive_count > 0);
 
+	out.totalNodes = total_nodes;
+	out.data.vertex_count = vertex_count;
+	out.data.primitive_count = primitive_count;
+
 	out.wnodes = (bvhNodeWrite*) malloc(total_nodes * sizeof(bvhNodeWrite));
 	file.read_nbytes(out.wnodes, total_nodes);
 
-	out.data.vertices = (vec3*) malloc(vertex_count * sizeof(vec3));
-	file.read_nbytes(out.data.vertices, vertex_count);
+	out.vertices = (vec4*) malloc(vertex_count * sizeof(vec4));
+	file.read_nbytes(out.vertices, vertex_count);
 
 	out.orderedPrimitives.resize(primitive_count);
 	file.read_nbytes(&out.orderedPrimitives[0], primitive_count);

@@ -3,10 +3,34 @@ uniform sampler2D tex;
 layout(location=0) uniform vec2 iResolution;
 layout(location=1) uniform float iTime;
 layout(location=2) uniform int iFrame;
+layout(location=3) uniform int pCount;
 
-layout(location=3) uniform vec3 verts[];
-layout(location=4) uniform uvec3 prims[];
-layout(location=5) uniform int pcount;
+struct bbox{
+    vec3 min;
+    vec3 max;
+};
+
+struct nodeBvh
+{
+    bbox bounds;
+    uint offset;
+    uint numPrimitives;
+    uint axis;
+};
+
+layout(binding=0,std430) buffer vert{
+    vec4 vertices[];
+};
+
+layout(binding=1,std430) buffer ind{
+    uvec4 indices[];
+};
+
+layout(binding=2,std430) buffer acc{
+    nodeBvh nodes[];
+};
+
+
 out vec4 color;
 
 
@@ -20,6 +44,43 @@ vec2 opU( vec2 d1, vec2 d2 )
 	return (d1.x<d2.x) ? d1 : d2;
 }
 
+float dot2( in vec3 v ) { return dot(v,v); }
+
+float udTriangle( in vec3 v1, in vec3 v2, in vec3 v3, in vec3 p )
+{
+    // prepare data    
+    vec3 v21 = v2 - v1; vec3 p1 = p - v1;
+    vec3 v32 = v3 - v2; vec3 p2 = p - v2;
+    vec3 v13 = v1 - v3; vec3 p3 = p - v3;
+    vec3 nor = cross( v21, v13 );
+
+    return sqrt( // inside/outside test    
+                 (sign(dot(cross(v21,nor),p1)) + 
+                  sign(dot(cross(v32,nor),p2)) + 
+                  sign(dot(cross(v13,nor),p3))<2.0) 
+                  ?
+                  // 3 edges    
+                  min( min( 
+                  dot2(v21*clamp(dot(v21,p1)/dot2(v21),0.0,1.0)-p1), 
+                  dot2(v32*clamp(dot(v32,p2)/dot2(v32),0.0,1.0)-p2) ), 
+                  dot2(v13*clamp(dot(v13,p3)/dot2(v13),0.0,1.0)-p3) )
+                  :
+                  // 1 face    
+                  dot(nor,p1)*dot(nor,p1)/dot2(nor) );
+}
+
+float sdMesh(vec3 p) {
+    
+  // float d = udTriangle(vec3(-1.,1.,1.),vec3(1.,1.,1.),vec3(1.,-1.,1.),p);
+   float d = udTriangle(vertices[indices[0].x].xyz,vertices[indices[0].y].xyz,vertices[indices[0].z].xyz,p);
+
+   for (int i = 1; i < pCount; i++) {
+        d = min(d, udTriangle(vertices[indices[i].x].xyz, vertices[indices[i].y].xyz, vertices[indices[i].z].xyz,p));
+    }
+    
+    return d;
+}
+
 float sdSphere( vec3 p, float s )
 {
   return length(p)-s;
@@ -29,35 +90,6 @@ float sdBox( vec3 p, vec3 b )
 {
   vec3 q = abs(p) - b;
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-}
-
-float dot2( in vec3 v ) { return dot(v,v); }
-float ndot( in vec2 a, in vec2 b ) { return a.x*b.x - a.y*b.y; }
-
-float sdTriangle( vec3 p, vec3 a, vec3 b, vec3 c ) {
-	vec3 ba = b - a; vec3 pa = p - a;
-	vec3 cb = c - b; vec3 pb = p - b;
-	vec3 ac = a - c; vec3 pc = p - c;
-	vec3 nor = cross( ba, ac );
-
-    float side = sign(dot(nor, p));
-    if (sign(dot(cross(ba,nor),pa)) + sign(dot(cross(cb,nor),pb)) + sign(dot(cross(ac,nor),pc)) < 2.0) {
-        return side * sqrt(min(min(
-            dot2(ba*clamp(dot(ba,pa)/dot2(ba),0.0,1.0)-pa), 
-            dot2(cb*clamp(dot(cb,pb)/dot2(cb),0.0,1.0)-pb)),
-            dot2(ac*clamp(dot(ac,pc)/dot2(ac),0.0,1.0)-pc))
-		);
-    } else {
-        return side * sqrt(dot(nor,pa)*dot(nor,pa)/dot2(nor));
-    }
-}
-
-float sdMesh(vec3 p) {
-    float d = sdTriangle(p, verts[prims[0].x], verts[prims[0].y], verts[prims[0].z]);
-    for (int i = 1; i < pcount; i++) {
-        d = min(d, sdTriangle(p, verts[prims[i].x], verts[prims[i].y], verts[prims[i].z]));
-    }
-    return d;
 }
 
 vec2 map(vec3 pos){
