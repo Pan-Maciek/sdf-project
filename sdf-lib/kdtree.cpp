@@ -43,9 +43,7 @@ kd_builder::kd_builder(
 	int max_depth
 ) : isect_cost(isect_cost), traversal_cost(traversal_cost),
 	empty_bonus(empty_bonus), max_primitives(max_prims),
-	max_depth(max_depth), allocated_nodes(0), next_free_node(0),
-	nodes(nullptr)
-{ }
+	max_depth(max_depth), allocated_nodes(0), next_free_node(0) { }
 
 kd_acc kd_builder::build(sdf::mesh mesh) {
 	bbox bounds(mesh.vertices, mesh.vertices + mesh.vertex_count);
@@ -63,22 +61,23 @@ kd_acc kd_builder::build(sdf::mesh mesh) {
 		edges[i] = (bound_edge*) malloc(2 * pcount * sizeof(bound_edge));
 
 	auto prims0 = make_unique<int[]>(pcount);
-	auto prims1 = make_unique<int[]>((this->max_depth + 1) * pcount);
+	auto prims1 = make_unique<int[]>((depth + 1) * pcount);
 
 	auto pnums = make_unique<int[]>(pcount);
 	for (int i = 0; i < pcount; ++i)
 		pnums[i] = i;
 
 	vector<int> pind;
+	kd_node *nodes = nullptr;
 
-	build(0, bounds, pbounds.get(), pnums.get(), pcount, this->max_depth, edges, prims0.get(), prims1.get(), pind, 0);
+	build(0, bounds, pbounds.get(), pnums.get(), pcount, depth, edges, prims0.get(), prims1.get(), nodes, pind, 0);
 	for (int i = 0; i < 3; ++i)
 		free(edges[i]);
 
 	int *indices = new int[pind.size()];
 	memcpy(indices, pind.data(), pind.size() * sizeof(int));
 
-	return {next_free_node, (int) pind.size(), nodes, indices};
+	return {mesh, next_free_node, (int) pind.size(), nodes, indices};
 }
 
 void kd_builder::build(
@@ -91,7 +90,8 @@ void kd_builder::build(
 	bound_edge* edges[3], 
 	int *prims0, 
 	int *prims1, 
-	vector<int>& pind, 
+	kd_node* &nodes,
+	vector<int> &pind, 
 	int bad_refines
 ) {
 	assert(node_num == next_free_node);
@@ -185,10 +185,10 @@ retry_split:
 	bbox bounds0 = bounds, bounds1 = bounds;
 	bounds0.max[best_axis] = bounds1.min[best_axis] = tsplit;
 
-	build(node_num + 1, bounds0, pbounds, prims0, n0, depth - 1, edges, prims0, prims1 + pcount, pind, bad_refines);
+	build(node_num + 1, bounds0, pbounds, prims0, n0, depth - 1, edges, prims0, prims1 + pcount, nodes, pind, bad_refines);
 	int above_child = next_free_node;
 	nodes[node_num].init_interior(best_axis, above_child, tsplit);
-	build(above_child, bounds1, pbounds, prims1, n1, depth - 1, edges, prims0, prims1 + pcount, pind, bad_refines);
+	build(above_child, bounds1, pbounds, prims1, n1, depth - 1, edges, prims0, prims1 + pcount, nodes, pind, bad_refines);
 }
 
 }

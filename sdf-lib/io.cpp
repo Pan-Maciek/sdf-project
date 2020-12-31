@@ -9,14 +9,22 @@ void io::write(const string &path, const kd_acc &acc) {
 	ofstream file(path, ios::binary);
 
 	file << "kd";
-	file.write_bytes(acc.nodes_size);
-	file.write_bytes(acc.indices_size);
+	file.write_bytes(acc.node_count);
+	file.write_bytes(acc.index_count);
+	file.write_bytes(acc.mesh.vertex_count);
+	file.write_bytes(acc.mesh.primitive_count);
 
 	assert(acc.nodes != nullptr);
-	file.write_nbytes(acc.nodes, acc.nodes_size);
+	file.write_nbytes(acc.nodes, acc.node_count);
 
 	assert(acc.indices != nullptr);
-	file.write_nbytes(acc.indices, acc.indices_size);
+	file.write_nbytes(acc.indices, acc.index_count);
+
+	assert(acc.mesh.vertices != nullptr);
+	file.write_nbytes(acc.mesh.vertices, acc.mesh.vertex_count);
+
+	assert(acc.mesh.primitives != nullptr);
+	file.write_nbytes(acc.mesh.primitives, acc.mesh.primitive_count);
 
 	file.close();
 }
@@ -24,34 +32,33 @@ void io::write(const string &path, const kd_acc &acc) {
 void io::read(const string &path, kd_acc &out) {
 	ifstream file(path, ios::binary);
 
-	if (out.nodes) {
-		free(out.nodes);
-		out.nodes = nullptr;
-	}
-	if (out.indices) {
-		free(out.indices);
-		out.indices = nullptr;
-	}
-
 	char magic_bytes[2];
 	file.read_nbytes(magic_bytes, 2);
 	assert(strncmp("kd", magic_bytes, 2) == 0);
 
-	int nodes, indices;
-	file.read_bytes(nodes);
-	assert(nodes > 0);
+	file.read_bytes(out.node_count);
+	assert(out.node_count > 0);
 
-	file.read_bytes(indices);
-	assert(indices > 0);
+	file.read_bytes(out.index_count);
+	assert(out.index_count > 0);
 
-	out.nodes_size = nodes;
-	out.indices_size = indices;
+	file.read_bytes(out.mesh.vertex_count);
+	assert(out.mesh.vertex_count > 0);
 
-	out.nodes = (kd_node*) malloc(nodes * sizeof(kd_node));
-	out.indices = (int*) malloc(indices * sizeof(int));
-	
-	file.read_nbytes(out.nodes, nodes);
-	file.read_nbytes(out.indices, indices);
+	file.read_bytes(out.mesh.primitive_count);
+	assert(out.mesh.primitive_count > 0);
+
+	out.nodes = (kd_node*) malloc(out.node_count * sizeof(kd_node));
+	file.read_nbytes(out.nodes, out.node_count);
+
+	out.indices = (int*) malloc(out.index_count * sizeof(int));
+	file.read_nbytes(out.indices, out.index_count);
+
+	out.mesh.vertices = (vec3*) malloc(out.mesh.vertex_count * sizeof(vec3));
+	file.read_nbytes(out.mesh.vertices, out.mesh.vertex_count);
+
+	out.mesh.primitives = (uvec3*) malloc(out.mesh.primitive_count * sizeof(uvec3));
+	file.read_nbytes(out.mesh.primitives, out.mesh.primitive_count);
 
 	file.close();
 }

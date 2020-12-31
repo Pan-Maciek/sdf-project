@@ -23,7 +23,8 @@ struct kd_node {
 #define kd_poffset(node) glm::floatBitsToInt(node.split)
 
 struct kd_acc {
-	int nodes_size, indices_size;
+	mesh mesh;
+	int node_count, index_count;
 	kd_node *nodes;
 	int *indices;
 };
@@ -48,6 +49,7 @@ private:
 		int pcount, int depth,
 		struct bound_edge* edges[3], 
 		int *prims0, int *prims1,
+		kd_node* &nodes,
 		std::vector<int>& pind,
 		int bad_refines
 	);
