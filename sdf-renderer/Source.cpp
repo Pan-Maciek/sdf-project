@@ -119,18 +119,18 @@ void loadKd(std::string filename) {
 
     glGenBuffers(1, &verticesBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.mesh.vertex_count* 16, acc.mesh.vertices, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.mesh.vertex_count* 16, acc.mesh.vertices, 0);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, verticesBuffer);
 
     glGenBuffers(1, &indicesBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indicesBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.index_count * sizeof(*acc.indices), acc.indices, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.index_count * sizeof(*acc.indices), acc.indices, 0);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indicesBuffer);
 
 
     glGenBuffers(1, &nodesBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, nodesBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.node_count * sizeof(*acc.nodes), acc.nodes, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.node_count * sizeof(*acc.nodes), acc.nodes, 0);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nodesBuffer);
 
 
@@ -150,7 +150,7 @@ void loadBvh(std::string filename) {
     
     glGenBuffers(1, &indicesBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indicesBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.getPrimitiveNum() * sizeof(*acc.getPrimitives()), acc.getPrimitives(), GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.getPrimitiveNum() *3* sizeof(*acc.getPrimitives()), acc.getPrimitives(), GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indicesBuffer);
     
     
@@ -215,7 +215,7 @@ void startup() {
     glViewport(0, 0, WIDTH, HEIGHT);
 
     fboInit();
-    loadBvh("out.binary");
+    loadBvh("cube.binary");
 }
 
 void render(double currentTime) {

@@ -39,7 +39,7 @@ void bvhNode::initInterior(int axis, bvhNode* n0, bvhNode* n1) {
 	numPrimitives = 0;
 }
 
-bvhNode* bvh::recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<uvec4>& orderedPrimitives) {
+bvhNode* bvh::recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<uint>& orderedPrimitives) {
 	(*totalNodes)++;
 	bbox bounds;
 	bounds = primitivesInfo[start].bounds;
@@ -52,7 +52,9 @@ bvhNode* bvh::recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int sta
 			int firstPrimOffset = orderedPrimitives.size();
 		for (int i = start; i < end; ++i) {
 			int primNum = primitivesInfo[i].primitiveNumber;
-			orderedPrimitives.push_back(vec4(data.primitives[primNum],0.));
+			orderedPrimitives.push_back(data.primitives[primNum].x);
+			orderedPrimitives.push_back(data.primitives[primNum].y);
+			orderedPrimitives.push_back(data.primitives[primNum].z);
 
 		}
 		node->initLeaf(firstPrimOffset, nPrimitives, bounds);
@@ -72,7 +74,9 @@ bvhNode* bvh::recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int sta
 			int firstPrimOffset = orderedPrimitives.size();
 			for (int i = start; i < end; ++i) {
 				int primNum = primitivesInfo[i].primitiveNumber;
-				orderedPrimitives.push_back(vec4(data.primitives[primNum],0.));
+				orderedPrimitives.push_back(data.primitives[primNum].x);
+				orderedPrimitives.push_back(data.primitives[primNum].y);
+				orderedPrimitives.push_back(data.primitives[primNum].z);
 
 			}
 			node->initLeaf(firstPrimOffset, nPrimitives, bounds);

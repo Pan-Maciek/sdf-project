@@ -70,10 +70,10 @@ float udTriangle( in vec3 v1, in vec3 v2, in vec3 v3, in vec3 p )
 float sdMesh(vec3 p) {
     
   // float d = udTriangle(vec3(-1.,1.,1.),vec3(1.,1.,1.),vec3(1.,-1.,1.),p);
-   float d = udTriangle(vertices[indices[0].x].xyz,vertices[indices[0].y].xyz,vertices[indices[0].z].xyz,p);
+   float d = udTriangle(vertices[indices[0]].xyz,vertices[indices[1]].xyz,vertices[indices[2]].xyz,p);
 
    for (int i = 1; i < pCount; i++) {
-        d = min(d, udTriangle(vertices[indices[i].x].xyz, vertices[indices[i].y].xyz, vertices[indices[i].z].xyz,p));
+        d = min(d, udTriangle(vertices[indices[i*3]].xyz, vertices[indices[i*3+1]].xyz, vertices[indices[i*3+2]].xyz,p));
     }
     
     return d;

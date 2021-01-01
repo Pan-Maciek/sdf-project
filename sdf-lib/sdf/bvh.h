@@ -61,10 +61,10 @@ namespace sdf {
 		bvhNodeWrite* wnodes;
 		vec4* vertices;
 		mesh data;
-		std::vector<uvec4> orderedPrimitives;
+		std::vector<uint> orderedPrimitives;
 		std::vector<primitiveInfo> primitivesInfo;
 		int recursiveFlatten(bvhNode* node, int* offset);
-		bvhNode* recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<uvec4>& orderedPrimitives);
+		bvhNode* recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<uint>& orderedPrimitives);
 		friend struct io;
 	};
 }
