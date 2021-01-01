@@ -17,13 +17,14 @@ struct bbox {
 	int max_extent() const;
 	bbox opU(bbox b2) const;
 	bbox opU(glm::vec3 p2) const;
+	glm::vec3 offset(glm::vec3 p) const;
 };
 
 struct bbox4 {
-	glm::vec4 min;
-	glm::vec4 max;
+	glm::vec4 dim;
+	glm::vec4 center;
 	bbox4() {};
-	bbox4(bbox b) { min = glm::vec4(b.min, 0.); max = glm::vec4(b.max, 0.); };
+	bbox4(bbox b) { dim = glm::vec4(b.max - b.min, 0.); center = glm::vec4(b.min, 0.) + dim * 0.5f; };
 };
 
 }

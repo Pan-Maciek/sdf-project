@@ -6,8 +6,8 @@ layout(location=2) uniform int iFrame;
 layout(location=3) uniform int pCount;
 
 struct bbox{
-    vec3 min;
-    vec3 max;
+    vec4 dim;
+    vec4 center;
 };
 
 struct nodeBvh
@@ -69,25 +69,60 @@ float udTriangle( in vec3 v1, in vec3 v2, in vec3 v3, in vec3 p )
                   dot(nor,p1)*dot(nor,p1)/dot2(nor) );
 }
 
-float sdMesh(vec3 p) {
-    
+float sdBox( vec3 p, vec3 b )
+{
+  vec3 q = abs(p) - b;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
+vec2 sdMesh(vec3 pos,float minDist) {
+float it=0.;
+   /* for(int i=0;i<17;i++){
+        for(int y=0;y<nodes[i].numPrimitives*3;y+=3)
+        minDist = min(minDist,udTriangle(vertices[indices[nodes[i].offset+y]].xyz,vertices[indices[nodes[i].offset+y+1]].xyz,vertices[indices[nodes[i].offset+y+2]].xyz, pos ));}*/
+    uint toVisitOffset = 0, currentNodeIndex = 0;
+    uint nodesToVisit[64];
+    while(true){
+        nodeBvh node=nodes[currentNodeIndex];
+        if( sdBox( pos-node.bounds.center.xyz, node.bounds.dim.xyz ) < minDist ){
+            if(node.numPrimitives>0){
+                for(int i=0;i<node.numPrimitives*3;i+=3)
+                    minDist = min(minDist,udTriangle(vertices[indices[node.offset+i]].xyz,vertices[indices[node.offset+i+1]].xyz,vertices[indices[node.offset+i+2]].xyz, pos ));
+                if (toVisitOffset == 0||minDist<0.001) break;
+                    currentNodeIndex = nodesToVisit[--toVisitOffset];
+            }else{
+                it+=0.01;
+                if(pos[node.axis] > node.bounds.center[node.axis]){
+                    nodesToVisit[toVisitOffset++] = currentNodeIndex + 1;
+                    currentNodeIndex = node.offset;
+                }else{
+                    nodesToVisit[toVisitOffset++] = node.offset;
+                    currentNodeIndex = currentNodeIndex + 1;
+                
+                }
+            
+            }
+
+        }else{
+            if (toVisitOffset == 0) break;
+                currentNodeIndex = nodesToVisit[--toVisitOffset];
+        }
+    }
+
+    return vec2(minDist,it);
+
+/*
    float d = udTriangle(vertices[indices[0]].xyz,vertices[indices[1]].xyz,vertices[indices[2]].xyz,p);
 
    for (int i = 1; i < pCount; i++) 
         d = min(d, udTriangle(vertices[indices[i*3]].xyz, vertices[indices[i*3+1]].xyz, vertices[indices[i*3+2]].xyz,p));
     
-    return d;
+    return d;*/
 }
 
 float sdSphere( vec3 p, float s )
 {
   return length(p)-s;
-}
-
-float sdBox( vec3 p, vec3 b )
-{
-  vec3 q = abs(p) - b;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
 vec2 map(vec3 pos){
@@ -98,8 +133,8 @@ vec2 map(vec3 pos){
     d1=opU(d1,d2);
     d2=vec2(pos.y+1.,3.5);
     d1=opU(d1,d2);
-    d2=vec2(sdMesh(pos-vec3(2.,0.,-1.)),1.5);
-    d1=opU(d1,d2);
+    d1=sdMesh(pos-vec3(0.,-0.5,1.5),d1.x);
+    //d1=opU(d1,d2);
 	return d1;
 }
 
@@ -193,7 +228,7 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
             	mat=vec4(0.1,0.15,0.2,0.01);
             else if(t.y<5.) 
                 mat=vec4(0.2,0.2,0.2,0.01);
-            
+            return vec3(t.y,t.y,t.y);
         	pos=ro+rd*t.x;
             vec3 nor=calcNormal(pos);
             float sunDiffuse=clamp(dot(nor,sunDir),0.,1.);
