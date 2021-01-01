@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "mesh.h"
 #include "bbox.h"
-
+#include <glm/gtc/packing.hpp>
 using namespace glm;
 
 namespace sdf {
@@ -18,14 +18,20 @@ namespace sdf {
 		void initInterior(int axis, bvhNode* n0, bvhNode* n1);
 	};
 
-	struct bvhNodeWrite {//44b
-		bbox4 bounds; //32b
+	struct bvhNodeWrite {//48b->20b
+		bbox4 bounds; //32b->12b
+		//uint min;
+		//uint minMax;
+		//uint max;
 		union {
 			uint primitivesOffset;    // leaf
 			uint secondChildOffset;   // interior
 		};//4b
-		uint numPrimitives; //4b
-		uint axis;//4b
+		uint numPrimitives; //4b //4b
+		uint axis;//4b           //
+		uint pad;//pad to 48b
+		//unsigned int offset;
+		//unsigned int numPrimAxis;//30 bit numPrim 2 bit axis
 	};
 
 	struct primitiveInfo {
@@ -53,7 +59,7 @@ namespace sdf {
 		uint getPrimitiveNum() const { return data.primitive_count; }
 		auto getVertices() const { return vertices; }
 		auto getPrimitives() const { return &orderedPrimitives[0]; }
-		auto getNodes() const { return &wnodes[0]; }
+		auto getNodes() const { return wnodes; }
 		
 	private:
 		int totalNodes = 0;

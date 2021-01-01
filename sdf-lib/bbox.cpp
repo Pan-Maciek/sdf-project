@@ -78,6 +78,14 @@ bbox bbox::opU(vec3 p2) const {
 	return b2;
 }
 
+vec3 bbox::offset(vec3 p) const {
+	vec3 o = p - min;
+	if (max.x > min.x) o.x /= max.x - min.x;
+	if (max.y > min.y) o.y /= max.y - min.y;
+	if (max.z > min.z) o.z /= max.z - min.z;
+	return o;
+}
+
 }
 
 
