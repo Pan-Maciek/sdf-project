@@ -155,6 +155,22 @@ void io::read(const string &path, mesh &out, ply_format _) {
 	out = {vertices, primitives, vcount, pcount};
 }
 
+format io::detect(const std::string &path) {
+	ifstream file(path);
+
+	char magic_bytes[3];
+	file.read(magic_bytes, 3);
+	
+	if (strncmp("ply", magic_bytes, 3) == 0)
+		return format::ply;
+	if (strncmp("kd", magic_bytes, 2) == 0)
+		return format::kd;
+	if (strncmp("bvh", magic_bytes, 3) == 0)
+		return format::bvh;
+
+	return format::unknown;
+}
+
 const ply_format io::ply = {};
 
 }

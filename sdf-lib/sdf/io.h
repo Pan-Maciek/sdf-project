@@ -13,6 +13,7 @@ namespace sdf {
 #define read_nbytes(x, n) read((char*) x, sizeof *x *n)
 
 struct ply_format { };
+enum class format { unknown = 0, ply, bvh, kd };
 
 struct io {
 
@@ -22,6 +23,8 @@ static void read(const std::string &path, sdf::bvh &out);
 
 static void write(const std::string &path, const sdf::kd_acc &in);
 static void write(const std::string &path, sdf::bvh &in);
+
+static format detect(const std::string &path);
 
 static const ply_format ply;
 };
