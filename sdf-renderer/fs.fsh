@@ -75,23 +75,24 @@ float sdBox( vec3 p, vec3 b )
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-vec2 sdMesh(vec3 pos,float minDist) {
+vec2 sdMesh(vec3 pos,float minDist,float t) {
 float it=0.;
    /* for(int i=0;i<17;i++){
         for(int y=0;y<nodes[i].numPrimitives*3;y+=3)
         minDist = min(minDist,udTriangle(vertices[indices[nodes[i].offset+y]].xyz,vertices[indices[nodes[i].offset+y+1]].xyz,vertices[indices[nodes[i].offset+y+2]].xyz, pos ));}*/
     uint toVisitOffset = 0, currentNodeIndex = 0;
-    uint nodesToVisit[64];
+    uint nodesToVisit[32];
     while(true){
         nodeBvh node=nodes[currentNodeIndex];
         if( sdBox( pos-node.bounds.center.xyz, node.bounds.dim.xyz ) < minDist ){
+            it+=0.01;
             if(node.numPrimitives>0){
                 for(int i=0;i<node.numPrimitives*3;i+=3)
                     minDist = min(minDist,udTriangle(vertices[indices[node.offset+i]].xyz,vertices[indices[node.offset+i+1]].xyz,vertices[indices[node.offset+i+2]].xyz, pos ));
-                if (toVisitOffset == 0||minDist<0.001) break;
+                if (toVisitOffset == 0||minDist<0.001*t) break;
                     currentNodeIndex = nodesToVisit[--toVisitOffset];
             }else{
-                it+=0.01;
+         
                 if(pos[node.axis] > node.bounds.center[node.axis]){
                     nodesToVisit[toVisitOffset++] = currentNodeIndex + 1;
                     currentNodeIndex = node.offset;
@@ -125,15 +126,15 @@ float sdSphere( vec3 p, float s )
   return length(p)-s;
 }
 
-vec2 map(vec3 pos){
+vec2 map(vec3 pos,float t){
     
-    vec2 d1=vec2(sdSphere(pos-vec3(0.,0.6,0.),0.5),1.5);
+   // vec2 d1=vec2(sdSphere(pos-vec3(0.,0.6,0.),0.5),1.5);
     vec3 q2=vec3(fract(pos.x*0.2)-0.5,pos.y*0.2,fract(pos.z*0.2)-0.5);
-	vec2 d2=vec2(sdBox(q2,vec3(0.2,0.5,0.2)),2.5);
+	vec2 d1=vec2(sdBox(q2,vec3(0.2,0.5,0.2)),2.5);
+    //d1=opU(d1,d2);
+    vec2 d2=vec2(pos.y+1.,3.5);
     d1=opU(d1,d2);
-    d2=vec2(pos.y+1.,3.5);
-    d1=opU(d1,d2);
-    d1=sdMesh(pos-vec3(0.,-0.5,1.5),d1.x);
+    d1=sdMesh(pos-vec3(0.,-0.5,1.),d1.x,t);
     //d1=opU(d1,d2);
 	return d1;
 }
@@ -141,9 +142,9 @@ vec2 map(vec3 pos){
 
 vec3 calcNormal(vec3 pos){
     vec2 e=vec2(1.,0.)*0.001;
-	return normalize(vec3(map(pos+e.xyy).x-map(pos-e.xyy).x,
-                          map(pos+e.yxy).x-map(pos-e.yxy).x,
-                         map(pos+e.yyx).x-map(pos-e.yyx).x));
+	return normalize(vec3(map(pos+e.xyy,1.).x-map(pos-e.xyy,1.).x,
+                          map(pos+e.yxy,1.).x-map(pos-e.yxy,1.).x,
+                         map(pos+e.yyx,1.).x-map(pos-e.yyx,1.).x));
 }
 
 //random cosine dist https://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf
@@ -171,11 +172,11 @@ vec3 uniformVector( in float seed)
 
 vec2 castRay(vec3 ro,vec3 rd){
  	float tmax=20.0;
-    float t=0.;
+    float t=0.1;
     float mat=-1.;
     for(int i=0;i<256;i++){
     	vec3 pos=ro+t*rd;
-        vec2 h=map(pos);
+        vec2 h=map(pos,t);
         mat=h.y;
         t+=h.x;
         if(abs(h.x)<(0.001)*t||t>tmax)
@@ -191,7 +192,7 @@ float castShadows(vec3 ro, vec3 rd){
     float t=0.05;
     for(int i=0;i<64;i++){
         vec3 pos=ro+t*rd;
-        float h=map(pos).x;
+        float h=map(pos,t).x;
         result=min(result,8.*h/t);
         t+=h;
         if(abs(h)<0.001*t||t>tmax)
