@@ -37,6 +37,9 @@
     <CopyFileToFolders Include="fs.fsh">
       <Filter>Resource Files</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="fsKd.fsh">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
     <CopyFileToFolders Include="quad.fsh">
       <Filter>Resource Files</Filter>
     </CopyFileToFolders>
