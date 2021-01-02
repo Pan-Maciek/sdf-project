@@ -18,20 +18,15 @@ namespace sdf {
 		void initInterior(int axis, bvhNode* n0, bvhNode* n1);
 	};
 
-	struct bvhNodeWrite {//48b->20b
-		bbox4 bounds; //32b->12b
-		//uint min;
-		//uint minMax;
-		//uint max;
+	struct bvhNodeWrite {//48b
+		bbox4 bounds; //32b
 		union {
 			uint primitivesOffset;    // leaf
 			uint secondChildOffset;   // interior
 		};//4b
-		uint numPrimitives; //4b //4b
-		uint axis;//4b           //
+		uint numPrimitives; //4b
+		uint axis;//4b
 		uint pad;//pad to 48b
-		//unsigned int offset;
-		//unsigned int numPrimAxis;//30 bit numPrim 2 bit axis
 	};
 
 	struct primitiveInfo {
@@ -46,7 +41,8 @@ namespace sdf {
 
 	class bvh {
 	public:
-		bvh() {};
+		bvh(int splitMethod=0, int desiredPrimsInNode=4, float bboxCollapse=10e-3, int maxDepth=8,int nBuckets=12,int maxPrimsInNode=4):
+			splitMethod(splitMethod), desiredPrimsInNode(desiredPrimsInNode), bboxCollapse(bboxCollapse), maxDepth(maxDepth), nBuckets(nBuckets), maxPrimsInNode(maxPrimsInNode){};
 		~bvh() { 
 			delete[] wnodes; 
 			delete[] vertices;
@@ -62,7 +58,13 @@ namespace sdf {
 		auto getNodes() const { return wnodes; }
 		
 	private:
-		int totalNodes = 0;
+		int splitMethod;
+		int desiredPrimsInNode;
+		float bboxCollapse;
+		int maxDepth;
+		int nBuckets;
+		int totalNodes;
+		int maxPrimsInNode;
 		bvhNode* root;
 		bvhNodeWrite* wnodes;
 		vec4* vertices;
@@ -70,7 +72,7 @@ namespace sdf {
 		std::vector<uint> orderedPrimitives;
 		std::vector<primitiveInfo> primitivesInfo;
 		int recursiveFlatten(bvhNode* node, int* offset);
-		bvhNode* recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<uint>& orderedPrimitives);
+		bvhNode* recursiveBuild(std::vector<primitiveInfo>& primitivesInfo, int start, int end, int* totalNodes, std::vector<uint>& orderedPrimitives, int depth);
 		friend struct io;
 	};
 }
