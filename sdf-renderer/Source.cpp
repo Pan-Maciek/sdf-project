@@ -1,33 +1,23 @@
 #include "pch.h"
-#include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
-#include <stdio.h>
-#include <iostream>
+
 #define WIDTH 1280
 #define HEIGHT 720
 
 GLuint vao;
-GLuint programBvh;
-GLuint programKd;
+GLuint programAcc;
 GLuint programQuad;
-GLuint* currentProgram;
 GLuint fbo[2];
 GLuint color_texture[2];
-GLuint verticesBuffer;
-GLuint indicesBuffer;
-GLuint nodesBuffer;
 
 static const GLenum draw_buffers[] = {
-        GL_COLOR_ATTACHMENT0
+	GL_COLOR_ATTACHMENT0
 };
 
-static void error_callback(int error, const char* description)
-{
+static void error_callback(int error, const char* description) {
 	fprintf(stderr, "Error: %s\n", description);
 }
 
-GLuint loadShaderFromFile(const char* filename, GLenum shader_type, bool check_errors)
-{
+GLuint loadShaderFromFile(const char* filename, GLenum shader_type, bool check_errors) {
     GLuint result = 0;
     FILE* fp;
     size_t filesize;
@@ -62,13 +52,11 @@ GLuint loadShaderFromFile(const char* filename, GLenum shader_type, bool check_e
 
     glCompileShader(result);
 
-    if (check_errors)
-    {
+    if (check_errors) {
         GLint status = 0;
         glGetShaderiv(result, GL_COMPILE_STATUS, &status);
 
-        if (!status)
-        {
+        if (!status) {
             char buffer[4096];
             glGetShaderInfoLog(result, 4096, NULL, buffer);
 
@@ -85,6 +73,7 @@ GLuint loadShaderFromFile(const char* filename, GLenum shader_type, bool check_e
     return result;
 
 }
+
 void fboInit() {
 
     glGenFramebuffers(2, &fbo[0]);
@@ -117,10 +106,16 @@ void loadKd(std::string filename) {
     kd_acc acc;
     io::read(filename, acc);
 
-    glGenBuffers(1, &verticesBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.mesh.vertex_count* 16, acc.mesh.vertices, 0);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, verticesBuffer);
+    GLuint vertex_bufffer, indicesBuffer, nodesBuffer;
+    const mesh &mesh = acc.mesh;
+    glGenBuffers(1, &vertex_bufffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertex_bufffer);
+    vec4 *verts = (vec4*) malloc(mesh.vertex_count * sizeof(vec4));
+    for (int i = 0; i < mesh.vertex_count; ++i)
+        memcpy(verts + i, mesh.vertices, sizeof(vec3));
+    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.vertex_count * sizeof *verts, mesh.vertices, 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertex_bufffer);
+	free(verts);
 
     glGenBuffers(1, &indicesBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, indicesBuffer);
@@ -134,15 +129,15 @@ void loadKd(std::string filename) {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nodesBuffer);
 
 
-    glUseProgram(programKd);
+    glUseProgram(programAcc);
     glUniform1i(3, acc.index_count);
-    currentProgram = &programKd;
 }
 
 void loadBvh(std::string filename) {
     bvh acc;
     io::read(filename, acc);
 
+    GLuint verticesBuffer, indicesBuffer, nodesBuffer;
     glGenBuffers(1, &verticesBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, acc.getVertexNum()*16, acc.getVertices(), GL_STATIC_DRAW);
@@ -160,9 +155,8 @@ void loadBvh(std::string filename) {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nodesBuffer);
     
 
-    glUseProgram(programBvh);
+    glUseProgram(programAcc);
     glUniform1i(3, acc.getPrimitiveNum());
-    currentProgram = &programBvh;
  
     //debug
   /*  void* r=glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, acc.getVertexNum() * sizeof(*acc.getVertices()), GL_MAP_READ_BIT);
@@ -177,30 +171,31 @@ void loadBvh(std::string filename) {
    
 }
 
-void startup() {
+void startup(format file, const string& input) {
 	//shaders initialization
-    programBvh = glCreateProgram();
-    GLuint vs=loadShaderFromFile("vs.vsh",GL_VERTEX_SHADER,true);
-    GLuint fs = loadShaderFromFile("fs.fsh", GL_FRAGMENT_SHADER, true);
-    glAttachShader(programBvh, vs);
-    glAttachShader(programBvh, fs);
-    glLinkProgram(programBvh);
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-
-
-    programKd = glCreateProgram();
-    vs = loadShaderFromFile("vs.vsh", GL_VERTEX_SHADER, true);
-    fs = loadShaderFromFile("fsKd.fsh", GL_FRAGMENT_SHADER, true);
-    glAttachShader(programKd, vs);
-    glAttachShader(programKd, fs);
-    glLinkProgram(programKd);
-    glDeleteShader(vs);
-    glDeleteShader(fs);
+    if (file == format::bvh) {
+		programAcc = glCreateProgram();
+		GLuint vs=loadShaderFromFile("vs.vsh",GL_VERTEX_SHADER,true);
+		GLuint fs = loadShaderFromFile("fs.fsh", GL_FRAGMENT_SHADER, true);
+		glAttachShader(programAcc, vs);
+		glAttachShader(programAcc, fs);
+		glLinkProgram(programAcc);
+		glDeleteShader(vs);
+		glDeleteShader(fs);
+    } else if (file == format::kd) {
+		programAcc = glCreateProgram();
+		GLuint vs = loadShaderFromFile("vs.vsh", GL_VERTEX_SHADER, true);
+		GLuint fs = loadShaderFromFile("fsKd.fsh", GL_FRAGMENT_SHADER, true);
+		glAttachShader(programAcc, vs);
+		glAttachShader(programAcc, fs);
+		glLinkProgram(programAcc);
+		glDeleteShader(vs);
+		glDeleteShader(fs);
+    }
 
     programQuad = glCreateProgram();
-    vs = loadShaderFromFile("vs.vsh", GL_VERTEX_SHADER, true);
-    fs = loadShaderFromFile("quad.fsh", GL_FRAGMENT_SHADER, true);
+    GLuint vs = loadShaderFromFile("vs.vsh", GL_VERTEX_SHADER, true);
+    GLuint fs = loadShaderFromFile("quad.fsh", GL_FRAGMENT_SHADER, true);
     glAttachShader(programQuad, vs);
     glAttachShader(programQuad, fs);
     glLinkProgram(programQuad);
@@ -215,7 +210,9 @@ void startup() {
     glViewport(0, 0, WIDTH, HEIGHT);
 
     fboInit();
-    loadBvh("cube.binary");
+
+    if (file == format::bvh) loadBvh(input);
+	else if (file == format::kd) loadKd(input);
 }
 
 void render(double currentTime) {
@@ -224,7 +221,7 @@ void render(double currentTime) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo[frame%2]);
     glBindTexture(GL_TEXTURE_2D, color_texture[(frame + 1) % 2]);
-    glUseProgram(*currentProgram);
+    glUseProgram(programAcc);
 
    // glClearBufferfv(GL_COLOR, 0, black);
 
@@ -254,17 +251,29 @@ void render(double currentTime) {
 
 void shutdown() {
     glDeleteVertexArrays(1, &vao);
-    glDeleteProgram(programBvh);
-    glDeleteProgram(programKd);
+    glDeleteProgram(programAcc);
     glDeleteProgram(programQuad);
-
 }
 
-int main() {
+int main(int argc, char** argv) {
+
+    parser cmdl(argc, argv);
+
+    if (!cmdl({"-i", "--in"})) {
+        cout << "Input file not provided (use -i flag)" << endl;
+        return EXIT_FAILURE;
+    }
+
+    string input;
+    cmdl({"-i", "--in"}) >> input;
+
+    format file = io::detect(input);
+    assert(file == format::bvh || file == format::kd);
+
 	bool running = true;
 	glfwSetErrorCallback(error_callback);
-	if (!glfwInit())
-		return -1;
+	if (!glfwInit()) 
+        return -1;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
@@ -276,17 +285,16 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "SDF_Project", NULL, NULL);
-	if (!window)
-	{
+	if (!window) {
 		fprintf(stderr, "Failed to open window\n");
-		return -1;
+        return -1;
 	}
 
 	glfwMakeContextCurrent(window);
 
 	gl3wInit();
 
-	startup();
+	startup(file, input);
 
 	do{
 		render(glfwGetTime());
