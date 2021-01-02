@@ -44,7 +44,24 @@ int main(int argc, char** argv) {
 
 		io::write(output, acc);
 	} else if (isbvh) {
-		bvh acc;
+		std::string split;
+		int spliti, desiredPrimsInNode,maxDepth,nBuckets,maxPrimsInNode;
+		float bboxCollapse;
+		cmdl({ "-split", "--split" }, 0) >> split;
+		if (split == "sah")
+			spliti = 2;
+		else if (split == "exact")
+			spliti = 1;
+		else
+			spliti = 0;
+
+		cmdl({ "-dpin", "--desired_prims_in_node" }, 4) >> desiredPrimsInNode;
+		cmdl({ "-bc", "--bbox_collapse" }, 10e-3) >> bboxCollapse;
+		cmdl({ "-md", "--max_depth" }, 8) >> maxDepth;
+		cmdl({ "-nb", "--n_buckets" }, 8) >> nBuckets;
+		cmdl({ "-maxp", "--max_prims_in_node" }, 8) >> maxPrimsInNode;
+
+		bvh acc(spliti, desiredPrimsInNode,bboxCollapse, maxDepth, nBuckets, maxPrimsInNode);
 		acc.load(input);
 		acc.buildBvh();
 		io::write(output, acc);
