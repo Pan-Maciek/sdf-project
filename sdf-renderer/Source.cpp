@@ -106,31 +106,32 @@ void loadKd(std::string filename) {
     kd_acc acc;
     io::read(filename, acc);
 
-    GLuint vertex_bufffer, indicesBuffer, nodesBuffer;
+    GLuint vertex_bufffer, index_buffer, node_buffer, primitive_buffer;
     const mesh &mesh = acc.mesh;
     glGenBuffers(1, &vertex_bufffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertex_bufffer);
     vec4 *verts = (vec4*) malloc(mesh.vertex_count * sizeof(vec4));
     for (int i = 0; i < mesh.vertex_count; ++i)
-        memcpy(verts + i, mesh.vertices, sizeof(vec3));
-    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.vertex_count * sizeof *verts, mesh.vertices, 0);
+        memcpy(&verts[i], &mesh.vertices[i], sizeof(vec3));
+    glBufferData(GL_SHADER_STORAGE_BUFFER, mesh.vertex_count * sizeof(vec4), verts, GL_STATIC_COPY); // 32B
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertex_bufffer);
 	free(verts);
 
-    glGenBuffers(1, &indicesBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indicesBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.index_count * sizeof(*acc.indices), acc.indices, 0);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indicesBuffer);
+    glGenBuffers(1, &index_buffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, index_buffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.index_count * sizeof *acc.indices, acc.indices, GL_STATIC_COPY); // 4B
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, index_buffer);
 
 
-    glGenBuffers(1, &nodesBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, nodesBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.node_count * sizeof(*acc.nodes), acc.nodes, 0);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nodesBuffer);
+    glGenBuffers(1, &node_buffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, node_buffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.node_count * sizeof *acc.nodes, acc.nodes, GL_STATIC_COPY); // 8B
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, node_buffer);
 
-
-    glUseProgram(programAcc);
-    glUniform1i(3, acc.index_count);
+    glGenBuffers(1, &primitive_buffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, primitive_buffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.mesh.primitive_count * sizeof *acc.nodes, acc.mesh.primitives, GL_STATIC_COPY); // 3 * 8B
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, primitive_buffer);
 }
 
 void loadBvh(std::string filename) {

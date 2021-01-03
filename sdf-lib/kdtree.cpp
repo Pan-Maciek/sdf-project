@@ -32,7 +32,7 @@ void kd_node::init_leaf(int *pnums, int pcount, vector<int> &pindices) {
 
 void kd_node::init_interior(int axis, int above_child, float split_value) {
 	flags = axis | (above_child << 2);
-	split = split;
+	split = split_value;
 }
 
 kd_builder::kd_builder(
@@ -47,7 +47,7 @@ kd_builder::kd_builder(
 
 kd_acc kd_builder::build(sdf::mesh mesh) {
 	bbox bounds(mesh.vertices, mesh.vertices + mesh.vertex_count);
-	int depth = max_depth <= 0 ? std::round(8 + 1.3 * std::log2l(mesh.primitive_count)) : max_depth;
+	int depth = max_depth <= 0 ? std::round(1.3 * std::log2l(mesh.primitive_count)) : max_depth;
 	next_free_node = allocated_nodes = 0;
 
 	int pcount = mesh.primitive_count;
