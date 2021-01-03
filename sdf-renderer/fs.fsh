@@ -5,6 +5,8 @@ layout(location=1) uniform float iTime;
 layout(location=2) uniform int iFrame;
 layout(location=3) uniform int pCount;
 
+uint id;
+float it=0.;
 struct bbox{
     vec4 dim;
     vec4 center;
@@ -75,20 +77,33 @@ float sdBox( vec3 p, vec3 b )
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-vec2 sdMesh(vec3 pos,float minDist,float t) {
-float it=0.;
-   /* for(int i=0;i<17;i++){
-        for(int y=0;y<nodes[i].numPrimitives*3;y+=3)
-        minDist = min(minDist,udTriangle(vertices[indices[nodes[i].offset+y]].xyz,vertices[indices[nodes[i].offset+y+1]].xyz,vertices[indices[nodes[i].offset+y+2]].xyz, pos ));}*/
+vec2 sdMesh(vec3 pos,float minDist,float t,float h) {
     uint toVisitOffset = 0, currentNodeIndex = 0;
     uint nodesToVisit[32];
     while(true){
         nodeBvh node=nodes[currentNodeIndex];
-        if( sdBox( pos-node.bounds.center.xyz, node.bounds.dim.xyz ) < minDist ){
-            it+=0.01;
+        float d=sdBox( pos-node.bounds.center.xyz, node.bounds.dim.xyz );
+        if( d <minDist ){
+            if(d>t){
+                minDist=d;
+                if (toVisitOffset == 0) break;
+                currentNodeIndex = nodesToVisit[--toVisitOffset];
+                continue;
+                }
+                it+=0.001;
             if(node.numPrimitives>0){
-                for(int i=0;i<node.numPrimitives*3;i+=3)
-                    minDist = min(minDist,udTriangle(vertices[indices[node.offset+i]].xyz,vertices[indices[node.offset+i+1]].xyz,vertices[indices[node.offset+i+2]].xyz, pos ));
+                //minDist=d;
+                if(d>h)
+                    minDist=d;
+                else{
+                for(int i=0;i<node.numPrimitives*3;i+=3){
+                    float d=udTriangle(vertices[indices[node.offset+i]].xyz,vertices[indices[node.offset+i+1]].xyz,vertices[indices[node.offset+i+2]].xyz, pos );
+                    it+=0.001;
+                    if(d<minDist){
+                        minDist=d;
+                        id=node.offset+i;
+                    }
+                }}
                 if (toVisitOffset == 0||minDist<0.001*t) break;
                     currentNodeIndex = nodesToVisit[--toVisitOffset];
             }else{
@@ -126,25 +141,22 @@ float sdSphere( vec3 p, float s )
   return length(p)-s;
 }
 
-vec2 map(vec3 pos,float t){
+vec2 map(vec3 pos,float t,float h){
     
    // vec2 d1=vec2(sdSphere(pos-vec3(0.,0.6,0.),0.5),1.5);
-    vec3 q2=vec3(fract(pos.x*0.2)-0.5,pos.y*0.2,fract(pos.z*0.2)-0.5);
-	vec2 d1=vec2(sdBox(q2,vec3(0.2,0.5,0.2)),2.5);
+    //vec3 q2=vec3(fract(pos.x*0.2)-0.5,pos.y*0.2,fract(pos.z*0.2)-0.5);
+	//vec2 d1=vec2(sdBox(q2,vec3(0.2,0.5,0.2)),2.5);
     //d1=opU(d1,d2);
-    vec2 d2=vec2(pos.y+1.,3.5);
-    d1=opU(d1,d2);
-    d1=sdMesh(pos-vec3(0.,-0.5,1.),d1.x,t);
+    //vec2 d2=vec2(pos.y+1.,3.5);
+    //d1=opU(d1,d2);
+    vec2 d1=sdMesh(pos-vec3(0.,-0.5,-2.),t,t,h);
     //d1=opU(d1,d2);
 	return d1;
 }
 
 
 vec3 calcNormal(vec3 pos){
-    vec2 e=vec2(1.,0.)*0.001;
-	return normalize(vec3(map(pos+e.xyy,1.).x-map(pos-e.xyy,1.).x,
-                          map(pos+e.yxy,1.).x-map(pos-e.yxy,1.).x,
-                         map(pos+e.yyx,1.).x-map(pos-e.yyx,1.).x));
+	return normalize(cross(vertices[indices[id+1]].xyz-vertices[indices[id]].xyz,vertices[indices[id+2]].xyz-vertices[indices[id]].xyz));   
 }
 
 //random cosine dist https://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf
@@ -174,9 +186,10 @@ vec2 castRay(vec3 ro,vec3 rd){
  	float tmax=20.0;
     float t=0.1;
     float mat=-1.;
-    for(int i=0;i<256;i++){
+    vec2 h=vec2(0.1,0.);
+    for(int i=0;i<64;i++){
     	vec3 pos=ro+t*rd;
-        vec2 h=map(pos,t);
+        h=map(pos,t,h.x);
         mat=h.y;
         t+=h.x;
         if(abs(h.x)<(0.001)*t||t>tmax)
@@ -190,9 +203,10 @@ float castShadows(vec3 ro, vec3 rd){
 	float result=1.;
     float tmax=10.;
     float t=0.05;
+    float h;
     for(int i=0;i<64;i++){
         vec3 pos=ro+t*rd;
-        float h=map(pos,t).x;
+        h=map(pos,t,h).x;
         result=min(result,8.*h/t);
         t+=h;
         if(abs(h)<0.001*t||t>tmax)
@@ -215,28 +229,23 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
     float fDist;
     vec3 oro=ro;
     vec3 ord=rd;
-    for(int i=0;i<2;i++){
+    for(int i=0;i<1;i++){
     	vec2 t=castRay(ro,rd);
         if(t.y>-1.){
             if(i==0)
                 fDist=t.x;
         	vec4 mat=vec4(0.2,0.2,0.2,0.2);
-            if(t.y<2.)
-                mat=vec4(0.2,0.2,0.3,0.001);
-            else if(t.y<3.)
-                mat=vec4(0.1,0.2,0.2,0.01);
-            else if(t.y<4.)
-            	mat=vec4(0.1,0.15,0.2,0.01);
-            else if(t.y<5.) 
-                mat=vec4(0.2,0.2,0.2,0.01);
-            return vec3(t.y,t.y,t.y);
+           
+            //return vec3(t.y,t.y,t.y);
         	pos=ro+rd*t.x;
             vec3 nor=calcNormal(pos);
+           // return vec3(nor.x,nor.y,nor.z);
             float sunDiffuse=clamp(dot(nor,sunDir),0.,1.);
-        	float sunShadow=castShadows(pos+nor*0.01,sunDir);
+        	float sunShadow=castShadows(pos+nor*0.1,sunDir);
             
 
             vec3 diffuse=sunColor*sunDiffuse*sunShadow; 
+            return vec3(diffuse.x,diffuse.y,diffuse.z);
       		fade*=mat.xyz;
         
             //if monte carlo
@@ -262,9 +271,7 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
         
     	
     }
-    //fog
-    //exclude beam from fog, otherwise beam would appear on floor
-    total = mix( total, vec3(0.02,0.04,0.07)*0.6*rds.y+abs(sin(0.005*(iTime-3.))*1./(abs(rds.x+0.01)+0.01))*vec3(0.1,0.2,0.3), 1.0-exp( -0.0005*fDist*fDist*fDist ) );
+
 	return total;
 
 }
@@ -276,13 +283,11 @@ void main()
     vec2 off2=vec2(hash(off1+11.54),hash(off1+56.97));
     
 	vec2 q = (2.*(gl_FragCoord.xy+off2)-iResolution.xy )/iResolution.y;
-	vec3 ro=vec3(0.,0.,2.);
+	vec3 ro=vec3(0.,1.,2.);
     //ro+=vec3(0.,0.,-iTime);
     vec3 rd=normalize(vec3(q.x,q.y,-1.));
     
     vec3 col =vec3(0.02,0.04,0.07)*0.6*rd.y;
-    if(iTime>3.)
-        col+=abs(sin(0.005*(iTime-3.))*1./(rd.x+0.01))*vec3(0.1,0.2,0.3);
     col=calculateColor(ro,rd,col,off1);
     tot+=col;
    // col=pow(col,vec3(0.4545));
