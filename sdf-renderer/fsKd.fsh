@@ -3,12 +3,8 @@ uniform sampler2D tex;
 layout(location=0) uniform vec2 iResolution;
 layout(location=1) uniform float iTime;
 layout(location=2) uniform int iFrame;
-layout(location=3) uniform int pCount;
-
-struct bbox{
-    vec3 min;
-    vec3 max;
-};
+layout(location=3) uniform vec3 bbox_center;
+layout(location=4) uniform vec3 bbox_dim;
 
 struct kd_node {
     float split;
@@ -83,7 +79,15 @@ struct uint_stack { uint data[32]; uint pointer; };
 
 #define loop for(;;)
 
+float sdBox( vec3 p, vec3 b ) {
+  vec3 q = abs(p) - b;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
 vec2 sdMesh(vec3 p, float d) {
+
+    if (sdBox(p - bbox_center, bbox_dim) > d)
+        return vec2(d, 0);
 
     uint_stack stack;
     stack_init(stack);
@@ -96,8 +100,8 @@ vec2 sdMesh(vec3 p, float d) {
     float iterate = 0;
 	loop {
         node = nodes[idx];
-        if (d < 0.001) return vec2(d, min(iterate, 1.));
-        iterate += 0.01;
+        if (d < 0.0001) return vec2(d, min(iterate, 1.));
+        iterate += 1./100.;
 
 		// up - indicates if we move up the stack
 		// only inner nodes are on the stack => we skip leaf check
@@ -116,11 +120,11 @@ vec2 sdMesh(vec3 p, float d) {
 		} else if (kd_isleaf(node)) {
 			pcount = kd_pcount(node);
 			poffset = kd_poffset(node);
-			if (pcount == 3) {
+			if (pcount == 1) {
 				d = min(d, udTriangle(
-					vertices[primitives[poffset]].xyz,
-					vertices[primitives[poffset] + 1].xyz,
-					vertices[primitives[poffset] + 2].xyz,
+					vertices[primitives[3*poffset]].xyz,
+					vertices[primitives[3*poffset+1]].xyz,
+					vertices[primitives[3*poffset+2]].xyz,
 					p
 				));
 			} else for (i = 0; i < pcount; ++i) {
@@ -150,11 +154,6 @@ vec2 sdMesh(vec3 p, float d) {
 
 float sdSphere( vec3 p, float s ) {
   return length(p)-s;
-}
-
-float sdBox( vec3 p, vec3 b ) {
-  vec3 q = abs(p) - b;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
 vec2 map(vec3 pos) {
@@ -250,7 +249,7 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
                 fDist=t.x;
         	vec4 mat=vec4(0.2,0.2,0.2,0.2);
            
-            return vec3(t.y,t.y,t.y);
+            // return vec3(t.y,t.y,t.y);
         	pos=ro+rd*t.x;
             vec3 nor=calcNormal(pos);
            // return vec3(nor.x,nor.y,nor.z);

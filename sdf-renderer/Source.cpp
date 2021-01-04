@@ -106,8 +106,10 @@ void loadKd(std::string filename) {
     kd_acc acc;
     io::read(filename, acc);
 
-    GLuint vertex_bufffer, index_buffer, node_buffer, primitive_buffer;
     const mesh &mesh = acc.mesh;
+    bbox box(mesh.vertices, mesh.vertices + mesh.vertex_count);
+
+    GLuint vertex_bufffer, index_buffer, node_buffer, primitive_buffer;
     glGenBuffers(1, &vertex_bufffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertex_bufffer);
     vec4 *verts = (vec4*) malloc(mesh.vertex_count * sizeof(vec4));
@@ -122,7 +124,6 @@ void loadKd(std::string filename) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, acc.index_count * sizeof *acc.indices, acc.indices, GL_STATIC_COPY); // 4B
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, index_buffer);
 
-
     glGenBuffers(1, &node_buffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, node_buffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, acc.node_count * sizeof *acc.nodes, acc.nodes, GL_STATIC_COPY); // 8B
@@ -130,8 +131,16 @@ void loadKd(std::string filename) {
 
     glGenBuffers(1, &primitive_buffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, primitive_buffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.mesh.primitive_count * sizeof *acc.nodes, acc.mesh.primitives, GL_STATIC_COPY); // 3 * 8B
+    glBufferData(GL_SHADER_STORAGE_BUFFER, acc.mesh.primitive_count * sizeof(int) * 3, mesh.primitives, GL_STATIC_COPY); // 3 * 4B
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, primitive_buffer);
+
+
+    glUseProgram(programAcc);
+    vec3 bbox_center = box.min;
+    vec3 bbox_dim = (box.max - box.min);
+    glUniform3fv(3, 1, (float*) &bbox_center);
+    glUniform3fv(4, 1, (float*) &bbox_dim);
+
 }
 
 void loadBvh(std::string filename) {
