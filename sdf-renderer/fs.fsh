@@ -73,27 +73,47 @@ float udTriangle( in vec3 v1, in vec3 v2, in vec3 v3, in vec3 p )
 
 float sdBox( vec3 p, vec3 b )
 {
-  vec3 q = abs(p) - b;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+  vec3 q = abs(p) - b/2.;
+  return length(max(q,0.0));
+}
+
+
+vec3 opTwist(in vec3 p )
+{
+    const float k = sin(iTime)/2.; // or some other amount
+    float c = cos(k*p.y);
+    float s = sin(k*p.y);
+    mat2  m = mat2(c,-s,s,c);
+    vec3  q = vec3(m*p.xy,p.z);
+    return q;
+}
+
+float opDisplace(in vec3 p,float minDist )
+{
+    return minDist-abs(sin(iTime+p.y*50.)*0.02);
 }
 
 vec2 sdMesh(vec3 pos,float minDist,float t,float h) {
     uint toVisitOffset = 0, currentNodeIndex = 0;
     uint nodesToVisit[32];
+    float dist[32];
+    uint distOffset = 0;
+    dist[distOffset]=sdBox( pos-nodes[0].bounds.center.xyz, nodes[0].bounds.dim.xyz );
     while(true){
         nodeBvh node=nodes[currentNodeIndex];
-        float d=sdBox( pos-node.bounds.center.xyz, node.bounds.dim.xyz );
-        if( d <minDist ){
-            if(d>t){
+        float d=dist[distOffset--];
+        if( d<minDist ){
+        it+=0.001;
+            if(d>h){
                 minDist=d;
                 if (toVisitOffset == 0) break;
                 currentNodeIndex = nodesToVisit[--toVisitOffset];
                 continue;
                 }
-                it+=0.001;
+                
             if(node.numPrimitives>0){
                 //minDist=d;
-                if(d>h)
+                if(d>0.1)
                     minDist=d;
                 else{
                 for(int i=0;i<node.numPrimitives*3;i+=3){
@@ -107,11 +127,18 @@ vec2 sdMesh(vec3 pos,float minDist,float t,float h) {
                 if (toVisitOffset == 0||minDist<0.001*t) break;
                     currentNodeIndex = nodesToVisit[--toVisitOffset];
             }else{
-         
-                if(pos[node.axis] > node.bounds.center[node.axis]){
+                float d1=sdBox( pos-nodes[ node.offset].bounds.center.xyz, nodes[ node.offset].bounds.dim.xyz );
+                float d2=sdBox( pos-nodes[ currentNodeIndex + 1].bounds.center.xyz, nodes[ currentNodeIndex + 1].bounds.dim.xyz );
+                if(d1<d2){
+                    dist[distOffset+1]=d2;
+                    dist[distOffset+2]=d1;
+                    distOffset+=2;
                     nodesToVisit[toVisitOffset++] = currentNodeIndex + 1;
                     currentNodeIndex = node.offset;
                 }else{
+                    dist[distOffset+1]=d1;
+                    dist[distOffset+2]=d2;
+                    distOffset+=2;
                     nodesToVisit[toVisitOffset++] = node.offset;
                     currentNodeIndex = currentNodeIndex + 1;
                 
@@ -140,7 +167,10 @@ float sdSphere( vec3 p, float s )
 {
   return length(p)-s;
 }
-
+vec2 mapSDF(vec3 pos){
+    vec2 d2=vec2(pos.y+1.,3.5);
+    return d2;
+}
 vec2 map(vec3 pos,float t,float h){
     
    // vec2 d1=vec2(sdSphere(pos-vec3(0.,0.6,0.),0.5),1.5);
@@ -149,14 +179,30 @@ vec2 map(vec3 pos,float t,float h){
     //d1=opU(d1,d2);
     //vec2 d2=vec2(pos.y+1.,3.5);
     //d1=opU(d1,d2);
-    vec2 d1=sdMesh(pos-vec3(0.,-0.5,-2.),t,t,h);
+    //vec2 d2=mapSDF(pos);
+    //pos=opTwist(pos);
+    vec2 d1=sdMesh(pos-vec3(0.,0.,0.),t,t,h);
+    //d1.x=opDisplace(pos,d1.x);
     //d1=opU(d1,d2);
 	return d1;
 }
 
-
 vec3 calcNormal(vec3 pos){
 	return normalize(cross(vertices[indices[id+1]].xyz-vertices[indices[id]].xyz,vertices[indices[id+2]].xyz-vertices[indices[id]].xyz));   
+}
+
+vec3 calcNormal2(vec3 pos){
+    vec2 e=vec2(1.,0.)*0.001;
+	return normalize(vec3(map(pos+e.xyy,0.1,0.1).x-map(pos-e.xyy,0.1,0.1).x,
+                          map(pos+e.yxy,0.1,0.1).x-map(pos-e.yxy,0.1,0.1).x,
+                         map(pos+e.yyx,0.1,0.1).x-map(pos-e.yyx,0.1,0.1).x));
+}
+
+vec3 calcNormalSDF(vec3 pos){
+    vec2 e=vec2(1.,0.)*0.001;
+	return normalize(vec3(mapSDF(pos+e.xyy).x-mapSDF(pos-e.xyy).x,
+                          mapSDF(pos+e.yxy).x-mapSDF(pos-e.yxy).x,
+                         mapSDF(pos+e.yyx).x-mapSDF(pos-e.yyx).x));
 }
 
 //random cosine dist https://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf
@@ -201,57 +247,70 @@ vec2 castRay(vec3 ro,vec3 rd){
 
 float castShadows(vec3 ro, vec3 rd){
 	float result=1.;
-    float tmax=10.;
-    float t=0.05;
-    float h;
+    float tmax=30.;
+    float t=0.1;
+    float h=0.1;
+    float ph = 1e10;
     for(int i=0;i<64;i++){
         vec3 pos=ro+t*rd;
         h=map(pos,t,h).x;
-        result=min(result,8.*h/t);
+        float y = h*h/(2.0*ph);
+        float d = sqrt(h*h-y*y);
+        result = min( result, 2.*d/max(0.0,t-y) );
+        ph = h;
         t+=h;
-        if(abs(h)<0.001*t||t>tmax)
+        if(abs(h.x)<0.001*t||t>tmax)
             break;
     }
-
-
     return max(result,0.01);
     
 }
 
+float checkersTexture( in vec2 p )
+{
+    vec2 q = floor(p);
+    return mod( q.x+q.y, 2.0 );            // xor pattern
+}
 
 vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
     vec3 rds=rd;
     vec3 fade=vec3(1.);
     vec3 total=vec3(0.);
     vec3 sunDir=normalize(vec3(4.,5.,1.2));
-    vec3 sunColor=vec3(3.,3.,1.5);
+    vec3 sunColor=vec3(6.,6.,3.);
     vec3 pos;
     float fDist;
     vec3 oro=ro;
     vec3 ord=rd;
+    vec3 nor;
     for(int i=0;i<1;i++){
     	vec2 t=castRay(ro,rd);
         if(t.y>-1.){
             if(i==0)
                 fDist=t.x;
-        	vec4 mat=vec4(0.2,0.2,0.2,0.2);
+        	vec4 mat=vec4(0.1,0.2,0.2,0.5);
            
             //return vec3(t.y,t.y,t.y);
         	pos=ro+rd*t.x;
-            vec3 nor=calcNormal(pos);
-           // return vec3(nor.x,nor.y,nor.z);
+            if(t.y<3.)
+            nor=calcNormal(pos);
+            else
+            nor=calcNormalSDF(pos);
+            //return vec3(nor.x,nor.y,nor.z);
             float sunDiffuse=clamp(dot(nor,sunDir),0.,1.);
-        	float sunShadow=castShadows(pos+nor*0.1,sunDir);
+        	float sunShadow=castShadows(pos+nor*0.001,sunDir);
             
 
             vec3 diffuse=sunColor*sunDiffuse*sunShadow; 
-            return vec3(diffuse.x,diffuse.y,diffuse.z);
+            //return vec3(sunShadow,sunShadow,sunShadow);
+            
       		fade*=mat.xyz;
-        
+
+
             //if monte carlo
-            vec3 skyPoint = cosineDirection( off1 + 7.1*float(iFrame) + 581.123 + float(i)*92.13, nor);
-        	float skySha = castShadows( pos + nor*0.01, skyPoint);//skyPoint
-        	diffuse += vec3(0.2,0.4,0.7) * skySha;
+           /* vec3 skyPoint = cosineDirection( off1 + 7.1*float(iFrame) + 581.123 + float(i)*92.13, nor);
+        	float skySha = castShadows( pos + nor*0.1, skyPoint);//skyPoint
+        	diffuse += vec3(0.2,0.4,0.7) * skySha;*/
             ro=pos+nor*0.001;
 
             total+=fade*diffuse;
@@ -271,15 +330,16 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
         
     	
     }
-
-	return total;
+ 
+    float pattern=smoothstep(-0.00001,0.00001,cos(5.*pos.x)*cos(5.*pos.y)*cos(5.*pos.z));
+	return total+pattern*0.01;
 
 }
 void main()
 {
  vec3 tot=vec3(0.);
  for(int i=0;i<1;i++){
-   	float off1=hash(dot( gl_FragCoord.xy, vec2(12.9898, 78.233))+iTime*354.+float(i)*1111.45);
+   	float off1=hash(dot( gl_FragCoord.xy, vec2(12.9898, 78.233))+(iTime+float(iFrame%100))*354.+float(i)*1111.45);
     vec2 off2=vec2(hash(off1+11.54),hash(off1+56.97));
     
 	vec2 q = (2.*(gl_FragCoord.xy+off2)-iResolution.xy )/iResolution.y;
