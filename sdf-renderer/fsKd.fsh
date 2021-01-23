@@ -6,6 +6,8 @@ layout(location=2) uniform int iFrame;
 layout(location=3) uniform vec3 bbox_center;
 layout(location=4) uniform vec3 bbox_dim;
 
+uint id;
+float it=0.;
 struct kd_node {
     float split;
 	int flags;
@@ -84,10 +86,10 @@ float sdBox( vec3 p, vec3 b ) {
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-vec2 sdMesh(vec3 p, float d) {
+vec2 sdMesh(vec3 p, float d, float t, float h) {
 
     if (sdBox(p - bbox_center, bbox_dim) > d)
-        return vec2(d, 0);
+        return vec2(d, 3.5);
 
     uint_stack stack;
     stack_init(stack);
@@ -100,14 +102,16 @@ vec2 sdMesh(vec3 p, float d) {
     float iterate = 0;
 	loop {
         node = nodes[idx];
-        if (d < 0.0001) return vec2(d, min(iterate, 1.));
+        // if (d < 0.0001) return vec2(d, min(iterate, 1.));
+        if (d < 0.0001) return vec2(d, 1);
         iterate += 1./100.;
+        // it += 1./1000.;
 
 		// up - indicates if we move up the stack
 		// only inner nodes are on the stack => we skip leaf check
 		// if there is possibility of better distance in other node we traverse there
 		if (up) {
-			tmp_d = abs(p[kd_split_axis(node)] - kd_split(node));
+			tmp_d = abs(p[kd_split_axis(node)] - kd_split(node))+0.015;
 			if (p[kd_split_axis(node)] < kd_split(node) && tmp_d < d) { // low child was chosen while traversing down
 				idx = kd_above_child(node);
 				up = false;
@@ -120,23 +124,35 @@ vec2 sdMesh(vec3 p, float d) {
 		} else if (kd_isleaf(node)) {
 			pcount = kd_pcount(node);
 			poffset = kd_poffset(node);
+            it += 1./1000.;
 			if (pcount == 1) {
-				d = min(d, udTriangle(
+                tmp_d = udTriangle(
 					vertices[primitives[3*poffset]].xyz,
 					vertices[primitives[3*poffset+1]].xyz,
 					vertices[primitives[3*poffset+2]].xyz,
 					p
-				));
+				);
+                if (tmp_d <= d) {
+                    d = tmp_d;
+                    id = 3 * poffset;
+                }
+                it += 1./1000.;
 			} else for (i = 0; i < pcount; ++i) {
-				d = min(d, udTriangle(
+                tmp_d = udTriangle(
 					vertices[primitives[3*indices[poffset+i]]].xyz,
 					vertices[primitives[3*indices[poffset+i] + 1]].xyz,
 					vertices[primitives[3*indices[poffset+i] + 2]].xyz,
 					p
-				));
+				);
+                if (tmp_d <= d) {
+                    d = tmp_d;
+                    id = 3*indices[poffset+i];
+                }
+                it += 1./1000.;
 			}
 			// traverse up (end of loop)
 		} else {
+            it += 1./1000.;
 			stack_push(stack, idx);
 			if (p[kd_split_axis(node)] < kd_split(node)) idx = idx + 1; // choose low child
 			else idx = kd_above_child(node); // choose high child 
@@ -149,28 +165,46 @@ vec2 sdMesh(vec3 p, float d) {
 		up = true;
     }
 
-	return vec2(d, min(iterate, 1.));
+	// return vec2(d, min(iterate, 1.));
+	return vec2(d, 1);
 }
 
 float sdSphere( vec3 p, float s ) {
   return length(p)-s;
 }
 
-vec2 map(vec3 pos) {
-    vec3 q2=vec3(fract(pos.x*0.2)-0.5,pos.y*0.2,fract(pos.z*0.2)-0.5);
-    vec2 d1=vec2(sdBox(q2, vec3(0.2, 0.5, 0.2)), 2.5);
+vec2 mapSDF(vec3 pos){
     vec2 d2=vec2(pos.y+1.,3.5);
-    d1 = opU(d1, d2);
-    d1 = sdMesh(pos-vec3(0.,-0.5,1.),d1.x);
-    return d1;
+    return d2;
+    // vec2 d1=sdMesh(pos-vec3(0.2,-0.5,0.5), 1., 100,100);
+	// return d1;
 }
 
+vec2 map(vec3 pos,float t,float h){
+   // vec2 d1=sdMesh(pos-vec3(0.5,-0.5,0.5), pos.y + 1.,t,h);
+     vec2 d1=sdMesh(pos-vec3(-0.3,-0.5,0.8), 1.,t,h);
+	return d1;
+}
 
 vec3 calcNormal(vec3 pos){
+	return normalize(cross(
+        vertices[primitives[id+1]].xyz-vertices[primitives[id]].xyz,
+        vertices[primitives[id+2]].xyz-vertices[primitives[id]].xyz
+    ));   
+}
+
+vec3 calcNormal2(vec3 pos){
     vec2 e=vec2(1.,0.)*0.001;
-	return normalize(vec3(map(pos+e.xyy).x-map(pos-e.xyy).x,
-                          map(pos+e.yxy).x-map(pos-e.yxy).x,
-                         map(pos+e.yyx).x-map(pos-e.yyx).x));
+	return normalize(vec3(map(pos+e.xyy,0.1,0.1).x-map(pos-e.xyy,0.1,0.1).x,
+                          map(pos+e.yxy,0.1,0.1).x-map(pos-e.yxy,0.1,0.1).x,
+                         map(pos+e.yyx,0.1,0.1).x-map(pos-e.yyx,0.1,0.1).x));
+}
+
+vec3 calcNormalSDF(vec3 pos){
+    vec2 e=vec2(1.,0.)*0.001;
+	return normalize(vec3(mapSDF(pos+e.xyy).x-mapSDF(pos-e.xyy).x,
+                          mapSDF(pos+e.yxy).x-mapSDF(pos-e.yxy).x,
+                         mapSDF(pos+e.yyx).x-mapSDF(pos-e.yyx).x));
 }
 
 //random cosine dist https://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf
@@ -201,9 +235,9 @@ vec2 castRay(vec3 ro,vec3 rd){
     float t=0.1;
     float mat=-1.;
     vec2 h=vec2(0.1,0.);
-    for(int i=0;i<256;i++){
+    for(int i=0;i<64;i++){
     	vec3 pos=ro+t*rd;
-        h=map(pos);
+        h=map(pos,t,h.x);
         mat=h.y;
         t+=h.x;
         if(abs(h.x)<(0.001)*t||t>tmax)
@@ -215,56 +249,72 @@ vec2 castRay(vec3 ro,vec3 rd){
 
 float castShadows(vec3 ro, vec3 rd){
 	float result=1.;
-    float tmax=10.;
-    float t=0.05;
+    float tmax=30.;
+    float t=0.1;
+    float h=0.1;
+    float ph = 1e10;
     for(int i=0;i<64;i++){
         vec3 pos=ro+t*rd;
-        float h=map(pos).x;
-        result=min(result,8.*h/t);
+        h=map(pos,t,h).x;
+        float y = h*h/(2.0*ph);
+        float d = sqrt(h*h-y*y);
+        result = min( result, 32.*d/max(0.0,t-y) );
+        ph = h;
         t+=h;
-        if(abs(h)<0.001*t||t>tmax)
+        if(abs(h.x)<0.001*t||t>tmax)
             break;
     }
-
-
     return max(result,0.01);
-    
 }
 
+float checkersTexture( in vec2 p )
+{
+    vec2 q = floor(p);
+    return mod( q.x+q.y, 2.0 );            // xor pattern
+}
 
 vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
     vec3 rds=rd;
     vec3 fade=vec3(1.);
     vec3 total=vec3(0.);
     vec3 sunDir=normalize(vec3(4.,5.,1.2));
-    vec3 sunColor=vec3(3.,3.,1.5);
+    vec3 sunColor=vec3(2.,2.,1.);
     vec3 pos;
     float fDist;
     vec3 oro=ro;
     vec3 ord=rd;
+    vec3 nor;
     for(int i=0;i<1;i++){
     	vec2 t=castRay(ro,rd);
         if(t.y>-1.){
             if(i==0)
                 fDist=t.x;
-        	vec4 mat=vec4(0.2,0.2,0.2,0.2);
+        	vec4 mat=vec4(0.1,0.2,0.2,0.01);
            
-            // return vec3(t.y,t.y,t.y);
+            // return vec3(it, it, it);
+            return vec3(t.y,t.y,t.y);
         	pos=ro+rd*t.x;
-            vec3 nor=calcNormal(pos);
-           // return vec3(nor.x,nor.y,nor.z);
+            if(t.y<3.)
+            nor=calcNormal(pos);
+            // return vec3(nor.x, nor.y, nor.z);
+            else
+            nor=calcNormalSDF(pos);
+            //return vec3(nor.x,nor.y,nor.z);
             float sunDiffuse=clamp(dot(nor,sunDir),0.,1.);
-        	float sunShadow=castShadows(pos+nor*0.1,sunDir);
+        	//float sunShadow=castShadows(pos+nor*0.001,sunDir);
+            // return vec3(nor.x, nor.y, nor.z);
             
 
-            vec3 diffuse=sunColor*sunDiffuse*sunShadow; 
-            return vec3(diffuse.x,diffuse.y,diffuse.z);
+            vec3 diffuse=sunColor*sunDiffuse; 
+            //return vec3(sunShadow,sunShadow,sunShadow);
+            
       		fade*=mat.xyz;
-        
+
+
             //if monte carlo
-            vec3 skyPoint = cosineDirection( off1 + 7.1*float(iFrame) + 581.123 + float(i)*92.13, nor);
-        	float skySha = castShadows( pos + nor*0.01, skyPoint);//skyPoint
-        	diffuse += vec3(0.2,0.4,0.7) * skySha;
+           /* vec3 skyPoint = cosineDirection( off1 + 7.1*float(iFrame) + 581.123 + float(i)*92.13, nor);
+        	float skySha = castShadows( pos + nor*0.1, skyPoint);//skyPoint
+        	diffuse += vec3(0.2,0.4,0.7) * skySha;*/
             ro=pos+nor*0.001;
 
             total+=fade*diffuse;
@@ -284,8 +334,9 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
         
     	
     }
-
-	return total;
+ 
+    float pattern=smoothstep(-0.00001,0.00001,cos(5.*pos.x)*cos(5.*pos.y)*cos(5.*pos.z));
+	return total+pattern*0.02;
 
 }
 void main()

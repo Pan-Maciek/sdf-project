@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <chrono>
 
 #define WIDTH 1280
 #define HEIGHT 720
@@ -239,7 +240,12 @@ void render(double currentTime) {
     glUniform1f(1, currentTime);
     glUniform1i(2, frame);
 
+    glFinish();
+    auto start = std::chrono::steady_clock::now();
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glFinish();
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << std::endl;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, WIDTH, HEIGHT);

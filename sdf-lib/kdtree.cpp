@@ -96,7 +96,7 @@ void kd_builder::build(
 ) {
 	assert(node_num == next_free_node);
 	if (next_free_node == allocated_nodes) {
-		int new_allocated_nodes = std::max(2 * allocated_nodes, 512);
+		int new_allocated_nodes = std::max(2 * allocated_nodes, 512000);
 		int to_allocate = new_allocated_nodes * sizeof(kd_node);
 		kd_node *new_nodes = (kd_node*) malloc(to_allocate);
 		if (allocated_nodes > 0) {
