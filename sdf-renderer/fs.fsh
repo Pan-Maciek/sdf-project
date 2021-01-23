@@ -99,10 +99,13 @@ vec2 sdMesh(vec3 pos,float minDist,float t,float h) {
     float dist[32];
     uint distOffset = 0;
     dist[distOffset]=sdBox( pos-nodes[0].bounds.center.xyz, nodes[0].bounds.dim.xyz );
-    while(true){
+    float it=0.;
+    while(it<0.5){
         nodeBvh node=nodes[currentNodeIndex];
         float d=dist[distOffset--];
         if( d<minDist ){
+        //if(d>0.)
+        //minDist=d;
         it+=0.001;
             if(d>h){
                 minDist=d;
@@ -167,6 +170,18 @@ float sdSphere( vec3 p, float s )
 {
   return length(p)-s;
 }
+float opSmoothUnion( float d1, float d2, float k ) {
+    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1.0 );
+    return mix( d2, d1, h ) - k*h*(1.0-h); }
+
+float opSmoothSubtraction( float d1, float d2, float k ) {
+    float h = clamp( 0.5 - 0.5*(d2+d1)/k, 0.0, 1.0 );
+    return mix( d2, -d1, h ) + k*h*(1.0-h); }
+
+float opSmoothIntersection( float d1, float d2, float k ) {
+    float h = clamp( 0.5 - 0.5*(d2-d1)/k, 0.0, 1.0 );
+    return mix( d2, d1, h ) + k*h*(1.0-h); }
+
 vec2 mapSDF(vec3 pos){
     vec2 d2=vec2(pos.y+1.,3.5);
     return d2;
@@ -245,6 +260,31 @@ vec2 castRay(vec3 ro,vec3 rd){
     return vec2(t,mat);
 }
 
+vec2 castRay2(vec3 ro,vec3 rd){
+ 	float tmax=20.0;
+    float t=0.1;
+    float mat=-1.;
+    vec2 h=vec2(0.1,0.);
+    float layers=0., d, aD;
+    float thD = .01;
+    vec3 col=vec3(0.);
+    for(int i=0;i<64;i++){
+    	vec3 pos=ro+t*rd;
+        h=map(pos,t,h.x);
+        aD = (thD-abs(h.x)*15./16.)/thD;
+        if(aD>0.) { 
+            col += aD*aD*(3. - 2.*aD)/(1. + t*t*.25)*.02; 
+            layers++; 
+        }
+        mat=h.y;
+        t += max(abs(h.x), 0.001); 
+        if( col.x>1. || t>10.) break;
+            
+    }
+    if(t>tmax) mat=-1.;
+    return vec2(t,col.x);
+}
+
 float castShadows(vec3 ro, vec3 rd){
 	float result=1.;
     float tmax=30.;
@@ -288,7 +328,7 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
         if(t.y>-1.){
             if(i==0)
                 fDist=t.x;
-        	vec4 mat=vec4(0.1,0.2,0.2,0.5);
+        	vec4 mat=vec4(0.1,0.2,0.2,0.1);
            
             //return vec3(t.y,t.y,t.y);
         	pos=ro+rd*t.x;
@@ -301,7 +341,7 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
         	float sunShadow=castShadows(pos+nor*0.001,sunDir);
             
 
-            vec3 diffuse=sunColor*sunDiffuse*sunShadow; 
+            vec3 diffuse=sunColor*sunDiffuse;//*sunShadow; 
             //return vec3(sunShadow,sunShadow,sunShadow);
             
       		fade*=mat.xyz;
@@ -332,7 +372,7 @@ vec3 calculateColor(vec3 ro,vec3 rd,vec3 col,float off1){
     }
  
     float pattern=smoothstep(-0.00001,0.00001,cos(5.*pos.x)*cos(5.*pos.y)*cos(5.*pos.z));
-	return total+pattern*0.01;
+	return total+pattern*0.02;
 
 }
 void main()
